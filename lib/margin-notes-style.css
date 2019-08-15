@@ -1,0 +1,144 @@
+:root{
+	--lightBlue:rgb(33,195,244);
+}
+
+.margin-notes-wrapper{
+	box-sizing:border-box;
+	font-family: sans-serif;
+	position:fixed;
+	top:50px;
+	right:0;
+}
+
+#post-name{
+	position:absolute;
+	right:10000px;
+}
+
+
+
+.margin-notes-form{
+	box-sizing:border-box;
+	font-family: sans-serif;
+	padding:.5em;
+	font-size: 16px;
+	background:var(--lightBlue);
+	position:relative;
+	overflow:hidden;
+	top:40px;
+	right:-100%;
+	transition: right .5s;
+}
+
+.margin-notes-form.expand {
+	right:0px;
+}
+
+#highlight-input,
+.margin-notes-form textarea{
+	font-size: 1em;
+	border-radius:5px;
+	padding:.1em;
+}
+
+.margin-notes-wrapper textarea{
+	display:block;
+	width:100%;
+	resize:none;
+	margin: .5em 0;
+}
+/*
+.margin-notes-form label{
+	display:block;
+}
+
+.margin-notes-form label,
+.margin-notes-form input,
+.margin-notes-form textarea
+{
+	width:95%;
+	margin:2.5% auto;
+}
+*/
+.margin-notes-form input,
+.margin-notes-form textarea{
+	box-sizing:border-box;
+	border:none;
+	color:rgb(100,100,100);
+}
+
+#margin-notes-submit {
+	margin: 0 auto;
+	border-radius: 5px;
+	border:2px solid white;
+	box-shadow:none;
+	padding:.5em;
+	width:auto;
+}
+
+#margin-notes-submit:hover{
+	/*background: white;
+	color:var(--lightBlue);*/
+	transform:scale(1.1);
+}
+
+.margin-notes-add {
+	outline:none;
+	position:absolute;
+	top:0;
+	right:5px;
+	border-radius:50%;
+	padding:0;
+}	
+
+.margin-notes-add svg{
+	height:20px;
+	width:20px;
+	object-fit:contain;
+}
+
+.highlight{
+	color:var(--lightBlue);
+	position:relative;
+}
+
+.site-main .annotation {
+	/*display:none;*/
+	font-size: .8em;
+	line-height: 1em;	
+	width:30%;
+	clear:both;
+	float:right;
+	margin:0;
+	/*top:-50px;
+	left:0;*/
+	/*float:right;*/
+	padding:.5em;
+	background:white;
+	z-index:-10;
+	/*border: 2px solid black;
+	box-shadow: 0 0 4px 2px rgb(150,150,150);*/
+}
+
+.highlight:hover .annotation{
+	display:block;
+	color:var(--lightBlue);
+}
+
+.sup {
+	position:relative;
+	bottom:6px;
+	font-size: .6em;
+}
+
+@media screen and (max-width: 400px){
+	.margin-notes-wrapper{
+		width:100%;
+		right:0;
+	}
+
+
+	.margin-notes-form{
+		width:100%;
+	}
+}
