@@ -15,18 +15,21 @@ any later version.
 Margin Notes is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
- 
-You should have received a copy of the GNU General Public License
-along with Margin Notes. If not, see https://www.gnu.org/licenses/old-licenses/gpl-2.0.html.
+GNU General Public License (https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) 
+for more details.
 
 //Todo
-add input to control whether a user's annotations display
-potential settings to add :
-	-highlight color
-	-option for whether to display as tooltip over highlighted text or in margins
-	--display in left margin
-overlapping text?
+	overlapping text?
+	refactor
+	security
+	validation
+	sanitize color inputs
+	how does hide notes work with tooltips
+	multi-liners in tooltip mode
+	handle string not found in text
+	media queries
+	form consistency across themes
+	prepend/append setting
 */
 
 defined('ABSPATH')||exit;
@@ -39,16 +42,31 @@ class Margin_Notes {
 
 	static $instance = false;
 
-	public $annotations = array();
-
 	private function __construct() {
+		/*
+		add_action( 'rest_api_init', register_rest_route('margin-notes/v1','/annotation/(?\w+)',array(
+			'methods' => 'GET',
+			'callback' => array( $this, 'delete_annotation'),
+			'args' => array(
+				'source'
+			),
+			'permission_callback' => function(){
+				return current_user_can( 'annotate' );
+			}
+		));)
+		*/
 
+		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
 		add_filter( 'the_content' , array( $this, 'filter_content') );
 		add_action( 'wp_enqueue_scripts', array( $this, 'load_front_end'));
-		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
 		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );	
 		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
+
+		//back-end
+		add_action( 'admin_enqueue_scripts', array( $this, 'load_back_end' ) );
+		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
+		//add_action( 'wp_ajax_delete_annotation', array( $this, 'delete_annotation' ) );
 
 	}
 
@@ -67,10 +85,10 @@ class Margin_Notes {
 			return;
 		}
 
-		add_option( "annotations" , array() );
+		add_option('margin_notes_html_string', array() );
+		add_option( "annotations" , '' );
 		self::add_reader_role();
-		self::setup_admin_settings();
-
+		//self::setup_admin_settings();
 	}
 
 	public static function on_deactivation(){
@@ -99,10 +117,11 @@ class Margin_Notes {
 	public function show_annotations( $content ) {
 		
 		$site_annotations = get_option('annotations');
+		$html_string = get_option('margin_notes_html_string');
 		$user = wp_get_current_user()->ID;
 		$post = get_post()->post_name;
 		$annotations = $site_annotations[$user][$post];
-
+	
 		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
 			return $content;
 		}
@@ -114,85 +133,293 @@ class Margin_Notes {
 		the user created them. For display purposes they 
 		should be ordered according to where they appear in the content. 
 		*/
+
+		function get_source( $arr ){
+			return $arr['source'];
+		}
 		
-		$sources = array_keys( $annotations );
+		$sources = array_map( 'get_source', $annotations );
 		$annotations_by_index = array();
-		foreach ( $sources as $source ){
-			$index = strpos( $content, $source);
+		foreach ( $annotations as $id => $annotation ){
+			$index = strpos( $content, $annotation['source']);
 			if ( ! $index ){
 				$index = 0;
 			}
-			//prevent overwriting any annotations in the unlikely event that 2 
-			//of them start on exact same index in $content
+			//prevent overwriting any annotations in case 2 
+			//of them start on same index in $content
 			if ( isset( $annotations_by_index[$index] ) ){
 				while ( isset( $annotations_by_index[$index] ) ){
 					$index++;
 				}
 			}
-			$annotations_by_index[$index]=array( $source => $annotations[$source] );
+		
+			$annotations_by_index[$index]=array( 
+				'source' => $annotation['source'],
+				'annotation' => $annotation['annotation'], 
+				'id' => $id
+			);
 		} 
 		
 		ksort( $annotations_by_index );
 		
-		$sorted_annotations = array();
-		foreach ($annotations_by_index as $index => $annotation) {
-			$source = array_keys( $annotation )[0];
-			$sorted_annotations[$source] = $annotation[$source];
-		}
-		
 		//all sorted
-
-		$annotation_style = 'border-left:3px solid '.$settings['primary_color'].';
-								color:'.$settings['tertiary_color'].';
-								background:'.$settings['note_background_color'].';
-								width:'.$settings['width_value'].$settings['width_unit'];
-
-		$highlight_style = 'color:'.$settings['primary_color'].';';
+			
+		
 		
 		$annotation_html = '';
-		
 		$note_num = 0;
-		foreach ($sorted_annotations as $source => $text) {
-			
-			$note_num++;
+		$margin_display = $settings['display_type'] === 'margins';
 
-			//border-left:3px solid '.$settings['primary_color'].';color:'.$settings['tertiary_color'].';background:'.$settings['note_background_color'].'					
-			if ( ! $settings['hide_notes'] ){
-				$annotation_html .= '<p class="annotation annotation-'.$note_num.'" style="'.$annotation_style.'">'.$note_num.'. '.esc_html( stripslashes( $text ) ).'</p>';
+		/*
+		foreach ( $annotations_by_index as $index => $data ) {
+
+			$current = current( $annotations_by_index );
+
+			$delete_url_query_string = sprintf('&action=delete_annotation&id-to-delete=%s&post=%s', $data['id'], $post ); 
+			$delete_url_base = wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation' , 'delete-annotation' );
+			$delete_url = $delete_url_base . $delete_url_query_string;
+			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), 'delete' );
+
+			$note_num++;
+						
+			if ( ! $settings['hide_notes'] && $margin_display ){
+					
+				$annotation_html .= sprintf( 
+					'<div class="annotation annotation-%d"><p>%d. %s</p>%s</div>', 
+					esc_attr( $data['id'] ), 
+					$note_num, 
+					esc_html( stripslashes( $data['annotation'] ) ),  
+					$delete_button 
+				);
+				
 			}
-			
-			$tag = '<span class="highlight annotation-'.$note_num.'" style="'.$highlight_style.'" >'.$source.' <span class="sup">'.$note_num.'</span></span>';
-			
-			$source = '/'.$source.'/';
+				
+			if ( $margin_display ){
+				
+				$tag = sprintf( 
+					'<span class="mn-highlight annotation-%d" >%s <span class="sup">%d</span></span>', 
+					esc_attr( $data['id'] ), 
+					esc_html( $data['source'] ), 
+					$note_num
+				); 
+
+			} else {
+				//$nextIndex = $annotations_by_index
+				print_r( key( next( $annotations_by_index ) ) );
+
+				$tag = sprintf( '<span class="mn-highlight">%s<span class="annotation-tooltip">%s<br>%s</span></span>', esc_html( $data['source'] ), esc_html( stripslashes( $data['annotation'] ) ), $delete_button );
+			}
+
+			$source = '/'.$data['source'].'/';
 			$content=preg_replace( $source, $tag, $content, 1);
 
 		}
 
-		$annotation_html.=$content;
+			
+		if ( $margin_display ){
+			update_option( 'margin_notes_html_string', $annotation_html );
+		}
 
-		return $annotation_html;
+		return $content;
+		*/
+
+		while ( current( $annotations_by_index ) ) {
+			$current = current( $annotations_by_index );
+			$source = $current['source'];
+			$note_num++;
+			
+			$delete_url_query_string = sprintf('&action=delete_annotation&id-to-delete=%s&post=%s', $current['id'], $post ); 
+			$delete_url_base = wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation' , 'delete-annotation' );
+			$delete_url = $delete_url_base . $delete_url_query_string;
+			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), 'delete' );
+						
+			if ( ! $settings['hide_notes'] && $margin_display ){
+					
+				$annotation_html .= sprintf( 
+					'<div class="annotation annotation-%d"><p>%d. %s</p>%s</div>', 
+					esc_attr( $current['id'] ), 
+					$note_num, 
+					esc_html( stripslashes( $current['annotation'] ) ),  
+					$delete_button 
+				);
+				
+			}
+			/*
+				if highlights overlap, only one tooltip should display at a time.
+				this section shortens the first highlight text so it ends immediately 
+				before the next begins - mouse never hovers over 2 highlights at once.
+				*/
+				$index = key($annotations_by_index);
+				next( $annotations_by_index );
+				$next_index = key( $annotations_by_index );
+				prev( $annotations_by_index );
+
+				if ( $next_index ){
+					$diff = $next_index - $index;
+					$source_length = strlen( $source );
+
+					if ( $source_length > $diff ){
+						$source = substr( $source, 0 , $diff );
+					} 
+				}
+				
+			if ( $margin_display ){
+				
+				$tag = sprintf( 
+					'<span class="mn-highlight annotation-%d" >%s <span class="sup">%d</span></span>', 
+					esc_attr( $current['id'] ), 
+					esc_html( $source ), 
+					$note_num
+				); 
+
+			} else {
+				
+
+				$tag = sprintf( '<span class="mn-highlight">%s<span class="annotation-tooltip">%s<br>%s</span></span>', esc_html( $source ), esc_html( stripslashes( $current['annotation'] ) ), $delete_button );
+			}
+
+			$source = '/'.$source.'/';
+			$content = preg_replace( $source, $tag, $content, 1);
+
+			next( $annotations_by_index );
 		
+		}
+		
+			
+		if ( $margin_display ){
+			update_option( 'margin_notes_html_string', $annotation_html );
+		}
+		
+		return $content;
+
 	}
 
 	public function handle_annotations(){
+		check_ajax_referer('populate_annotations' , 'security' );
+		if ( ! current_user_can ( 'annotate' ) ){
+			wp_die();
+		}
+
+		$post = $_POST['post'];
+
+		$annotation_html = get_option('margin_notes_html_string');
+
+		$response =  $annotation_html;
 		
-		check_ajax_referer('populate_annotations' , 'security' ); 
-
-		$primary_color = get_option('margin_notes_primary_color');
-		$secondary_color = get_option('margin_notes_secondary_color');
-
-		$response = json_encode( array(
-			'primary_color' => $primary_color,
-			'secondary_color' => $secondary_color
-			) 
-		);
-		//$response = array('five'=>'hi from the back end');
- 		//print_r($response);
 		wp_send_json( $response );
- 		//echo  $response ;
+ 	
 		wp_die();
 	}
+//
+	public function delete_annotation(){
 
+		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
+		
+		if ( ! wp_verify_nonce($req['delete-annotation'], 'delete-annotation') ){
+			print_r('nonce fail');
+			return;
+		}
+		//$req = isset($_POST) ? $_POST : $_GET;
+
+		$id = $req['id-to-delete'];
+	
+		$post  = $req['post'];
+		//print_r($post);
+		$user = wp_get_current_user()->ID;
+		$annotations = get_option('annotations');
+
+		array_splice( $annotations[$user][$post], $id, 1);
+
+		update_option( 'annotations', $annotations );
+		update_option( 'margin_notes_html_string', '');
+
+		$url = get_home_url() . '/index.php/' . $post;
+
+		wp_redirect( $url );
+
+		//wp_die();
+	}
+
+	/*
+	public function delete_annotation() {
+		check_ajax_referer( 'delete_annotation' , 'secure_delete');
+		$annotations = get_option('annotations');
+		$html_string = get_option('margin_notes_html_string');
+		global $post;
+		//these are not user inputs so don't need to sanitize them
+		$user=wp_get_current_user()->ID;
+		$post=$_POST['post'];
+		$id=$_POST['id'];
+
+		$removed=array_splice( $annotations[$user][$post], $id, 1);
+
+		$string_to_cut = str_replace(
+				array(
+					'&rsquo;',
+					'&lsquo;',
+					'&ldquo;',
+					'&rdquo;',
+				),array(
+					'&#8217;',
+					'&#8216;',
+					'&#8220;',
+					'&#8221;'
+				), $removed[$id]['source']);
+
+		$html_string=str_replace( $string_to_cut , '' , $html_string[$post] );
+		
+		
+
+		update_option( 'annotations', $annotations) ;
+		update_option( 'margin_notes_html_string', $html_string);
+		
+		wp_send_json($string_to_cut);
+
+		wp_die();
+	}
+	*/
+	/*
+	public function get_annotation_html( $annotations_by_index ){
+
+		$settings = get_option('margin_notes_display_options');
+
+		if ( $settings['tooltip_display'] === 'margin_notes' ){
+
+			$annotation_style = 'border-left:3px solid '.$settings['primary_color'].';
+									color:'.$settings['tertiary_color'].';
+									background:'.$settings['note_background_color'].';
+									width:'.$settings['width_value'].$settings['width_unit'].';
+									float:'.$settings['which_margin'];
+			
+			$annotation_html = '';
+			
+			$note_num = 0;
+			foreach ( $annotations_by_index as $index => $data) {
+				$note_num++;
+
+				//border-left:3px solid '.$settings['primary_color'].';color:'.$settings['tertiary_color'].';background:'.$settings['note_background_color'].'					
+				if ( ! $settings['hide_notes'] ){
+
+					$delete_button = '<button class="delete-annotation" style="'.$delete_button_style.'" id="delete-'.$post.'-'.esc_attr( $data['id'] ).'">delete</button>';
+
+					$annotation_html .= '<div class="annotation annotation-'.$data['id'].'" style="'.$annotation_style.'">'.$delete_button.'<p>'.$note_num.'. '.esc_html( stripslashes( $data['annotation'] ) ).'</p></div>';
+				}
+				
+				$tag = '<span class="highlight annotation-'.$data['id'].'" style="'.$highlight_style.'" >'.$data['source'].' <span class="sup">'.$note_num.'</span></span>';
+				
+				$source = '/'.$data['source'].'/';
+				$content=preg_replace( $source, $tag, $content, 1);
+
+			}
+
+			//print_r($html_string);
+			
+			$html_string[$post] = $annotation_html;
+
+			update_option('margin_notes_html_string', $html_string )
+
+	}
+	*/
 	public function print_annotation_form( $content ){
 
 		if ( ! is_singular() ){
@@ -203,7 +430,11 @@ class Margin_Notes {
 			return $content;
 		} 
 
+		include 'lib/check_icon.php';
+
 		$settings = get_option( 'margin_notes_display_options' );
+
+
 
 		$svg = '
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
@@ -216,29 +447,37 @@ class Margin_Notes {
 		</svg>
 		';
 
-		$margin_notes_wrapper_style = 'width:'.esc_attr( $settings['width_value'] ).esc_attr( $settings['width_unit'] );
+		$direction = $settings['which_margin'] === 'left' ? 'left' : 'right';
+
+		$wrapper_class = 'margin-notes-wrapper margin-notes-wrapper-' . $direction ;
+
+		$form_class = 'margin-notes-form margin-notes-form-' . $direction ;
 		
-		$margin_notes_form_style = 'background:'.esc_attr( $settings['primary_color'] ).';
-									width:100%;';
-
-		$margin_notes_add_style = 'color:'.esc_attr( $settings['primary_color'] ).';
-								   width:20px;height:20px';
-
-		$html = '<div class="margin-notes-wrapper" style="'.$margin_notes_wrapper_style.'">';
-		$html .= '<button class="margin-notes-add margin-notes-button" style="'.$margin_notes_add_style.'">';
-		$html .= $svg.'</button>';
-		$html .= '<form id="margin-notes-form" class="margin-notes-form" style="'.$margin_notes_form_style.'" action="'.esc_url(admin_url('admin-post.php')).'" method="post">';
-		$html .= '<input type="text" name="post-name" id="post-name" readonly="readonly" value="'.esc_attr(get_post()->post_name).'">';
-		$html .= '<label style="color:'.$settings['secondary_color'].'">'.__('Copy and paste source text for your annotation.');
-		$html .= '<input name="highlight" id="highlight-input" type="text">';
-		$html .= '</label>';
-		$html .= '<label style="color:'.$settings['secondary_color'].'">'.__('Create an annotation.');
+		$html = '<button id="margin-notes-add" class="margin-notes-add margin-notes-button">';
+		$html .= $svg.'</button>';					
+		$html .= sprintf( '<div id="margin-notes-wrapper" class="%s">', esc_attr( $wrapper_class ) );
+		$html .= sprintf( 
+					'<form id="margin-notes-form" class="%s" action="%s" method="post">', 
+					esc_attr( $form_class ), 
+					esc_url( admin_url('admin-post.php') ) 
+				);
+		$html .= sprintf( '<input type="text" name="post-name" id="post-name" readonly="readonly" value="%s">', esc_attr(get_post()->post_name) );
+		$html .= '<label>'.__('Copy and paste source text for your annotation.');
+		$html .= '<input name="highlight" required id="highlight-input" type="text"></label>';
+		$html .= '<p id="highlight-error"></p>';
+		$html .= '<label>'.__('Create an annotation.');
 		$html .= '<textarea name="annotation" rows="10" id="annotation-input" placeholder="your thoughts ... " type="text">';
-		$html .= '</textarea>';
+		$html .= '</textarea></label>';
+		$html .= '<label>'.__('Delete all annotations on this page.');
+		$html .= '<input type="checkbox" id="deleteAll" value="delete" name="delete">';
+		$html .= sprintf( 
+					'<div class="surrogate-checkbox colored-border">%s</div>',
+					renderCheck( $settings['primary_color'], $settings['secondary_color'] )
+				);
 		$html .= '</label>';
 		$html .= '<input type="hidden" name="action" value="annotation">';
 		$html .= wp_nonce_field('submit-annotation','thoughts-on-article');
-		$html .= '<input type="submit" value="submit" id="margin-notes-submit" style="background:'.$settings['primary_color'].';color:'.$settings['secondary_color'].'" class="margin-notes-button">';
+		$html .= '<input type="submit" value="submit" id="margin-notes-submit" class="margin-notes-button colored-border">';
 		$html .= '</form></div>';
 
 		return $content.$html;
@@ -271,195 +510,281 @@ class Margin_Notes {
 
 	}
 
-	public static function setup_admin_settings (){
+	public function settings_parameters() {
 
-		register_setting(
-			'discussion',
-			'margin_notes_display_options',
-			array(
-				'type' => 'array',
-				'description' => 'display options for margin notes'
+		$sections = array(
+			'display_settings' => array(
+				'title' => 'Margin Notes Display Settings',
+				'callback' => '__return_true',
+				'page' => 'discussion'
+			),
+			'color_settings' => array(
+				'title' => 'Margin Notes Color Settings',
+				'callback'=> 'echo_color_section_instructions',
+				'page' => 'discussion'
 			)
 		);
 
-		/*COLOR SETTINGS*/
-
-		function echo_color_section_instructions(){
-			echo '<p>You can specify as many as four theme colors. Any color format accepted.</p>';
-		}
-
-		add_settings_section('margin_notes_color_settings','Margin Notes Color Settings','echo_color_section_instructions','discussion');
-
-		//Primary Color Setting
-
-		function echo_primary_color_input(){
-			
-			$option = get_option('margin_notes_display_options',"");
-			$value = isset( $option['primary_color'] ) ? $option['primary_color'] : '' ;
-
-			$html = '<p>Background color for "create new" form and accent color for notes. Defaults to black.</p>';
-			$html .= '<input type="text" id="margin_notes_primary_color" value="'.$value.'" name="margin_notes_display_options[primary_color]">';
-			echo $html;
-		}
-/*
-		register_setting(
-			'discussion',
-			'margin_notes_primary_color',
+		$fields = array(
 			array(
-				'type'=>'string',
-				'description'=>'primary color'
-		));
-*/
-		add_settings_field('margin_notes_primary_color','Form Background Color','echo_primary_color_input','discussion','margin_notes_color_settings');
+				'name' => 'primary_color',
+				'title' => 'Form Background Color',
+				'type' => 'text_input',
+				'section' => 'color_settings',
+				'desc' => __('Background color for "create new" form and accent color for notes. Defaults to black.', 'margin-notes'),
+			),
+			array(
+				'name' => 'secondary_color',
+				'title' => 'Form Text Color',
+				'type' => 'text_input',
+				'section' => 'color_settings',
+				'desc' => __('Text color for "Create New" form. Defaults to white', 'margin-notes'),
+			),
+			array(
+				'name' => 'tertiary_color',
+				'title' => 'Annotation Text Color',
+				'type' => 'text_input',
+				'section' => 'color_settings',
+				'desc' => __( 'Color for the text of the notes themselves. Defaults to black.', 'margin-notes')
+			),
+			array(
+				'name' => 'note_background_color',
+				'title' => 'Annotation Background Color',
+				'type' => 'text_input',
+				'section' => 'color_settings',
+				'desc' => __( 'Color for background of the notes. Defaults to white.', 'margin-notes')
+			),
+			array(
+				'name' => 'display_type',
+				'title' => 'Display Type',
+				'type' => 'radio_group',
+				'section' => 'display_settings',
+				'desc' => __( 'Annotations can be displayed either as tooltips or as notes in the margins', 'margin-notes'),
+				'values' => array( 'margins' , 'tooltips' )
+			),
+			array(
+				'name' => 'container',
+				'title' => 'Container',
+				'type' => 'text_input',
+				'section' => 'display_settings',
+				'desc' => __( 'An id or class name of an html element in your theme to be used as the container for the annotations.', 'margin-notes')
+			),
+			array(
+				'name' => 'container_type',
+				'title' => 'Container Attribute Type',
+				'type' => 'radio_group',
+				'section' => 'display_settings',
+				'desc' => __( 'The name listed above is an:', 'margin-notes'),
+				'values' => array( 'id', 'class' )
+			),
+			array(
+				'name' => 'width_value',
+				'title' => 'Width Value',
+				'type' => 'text_input',
+				'section' => 'display_settings',
+				'desc' => __( 'Specify a width your annotations should take up on large screens.' , 'margin-notes')
+			),
+			array(
+				'name' => 'width_unit',
+				'title' => 'Width Unit',
+				'type' => 'radio_group',
+				'section' => 'display_settings',
+				'desc' => __( 'Specify a unit for the width of the annotations.', 'margin-notes'),
+				'values' => array( 'px', '%' , 'vw' )
+			),
+			array(
+				'name' => 'which_margin',
+				'title' => 'Choose Margin',
+				'type' => 'radio_group',
+				'section' => 'display_settings',
+				'desc' => __( 'The side of the page where annotations will appear.', 'margin-notes'),
+				'values' => array( 'left', 'right' ),
+			),
+			array(
+				'name' => 'hide_notes',
+				'title' => 'Hide Notes',
+				'type' => 'checkbox',
+				'section' => 'display_settings',
+				'desc' => __( 'Hide annotations on all pages that have them', 'margin-notes'),
+				'values' => array('true'),
+			),
+			/*array(
+				'name' => 
+				'title' =>
+				'type' =>
+				'section' => 'display_settings',
+				'desc' => __( , 'margin-notes')
+			),*/
+		);
 
-		//Secondary color setting
+		return apply_filters( 'margin_notes_settings_parameters', 
+			array( 
+				'sections' => $sections,
+				'fields' => $fields,
+			) 
+		);
+
+	}
+
+	public function get_description( $text ){
+		return '<p>'.$text.'</p>';
+	}
+
+	public function text_input( $args ) {
+		$setting = $args['setting'];
+		$name=$args['name'];
+		$description = $args['description'];
+
+		$html = '';
+		$value = isset( $setting ) ? $setting : '' ;
+
+		$html .= $this->get_description( $description );
+		$html .= '<input type="text" id="margin_notes_'.$name.'" value="'.$value.'" name="margin_notes_display_options['.$name.']"  >';
+		echo $html;
+	}
+
+	public function radio_group( $args ){
+		[
+			'setting' => $setting,
+			'name' => $name,
+			'description' => $description,
+			'values' => $values,
+		] = $args;
+		/*$setting = $args['setting'];
+		$name=$args['name'];
+		$description = $args['description'];
+		$values = $args['values'];
+		$display = $args['display'];*/
+
+		$html = '';
+		$value = isset( $setting ) ? $setting : '' ;
+
+		$html .= $this->get_description( $description );
+
+		foreach ($values as $val ){
 	
-		function echo_secondary_color_input(){
-
-			$option = get_option('margin_notes_display_options');
-			$value = isset( $option['secondary_color'] ) ? $option['secondary_color'] : '' ;
-
-			$html = '<p>Text color for "create new" form. Defaults to white.</p>';
-			$html.= '<input type="text" id="margin_notes_secondary_color" value="'.$value.'" name="margin_notes_display_options[secondary_color]">';
-			echo $html;
+			$html .= '<label>';
+			$html .= '<input type="radio" value="'.$val.'" name="margin_notes_display_options['.$name.']" id="margin_notes_'.$name.'_'.$val.'" '.checked($val, $value, false).' >';
+			$html .= '<span>' . $val . ' </span></label>';	
 		}
-		/*
-		register_setting(
-			'discussion',
-			'margin_notes_secondary_color',
-			array(
-				'type'=>'string',
-				'description'=>'secondary color'
-		));
-		*/
-		add_settings_field('margin_notes_secondary_color','Form Text Color','echo_secondary_color_input','discussion','margin_notes_color_settings');
 
-		//tertiary color setting
+		echo $html;
+	}
 
-		function echo_tertiary_color_input(){
-
-			$option = get_option('margin_notes_display_options');
-			$value = isset( $option['tertiary_color'] ) ? $option['tertiary_color'] : '' ;
-
-			$html = '<p>Color for the text of the notes themselves. Defaults to black.</p>';
-			$html.= '<input type="text" id="margin_notes_tertiary_color" value="'.$value.'" name="margin_notes_display_options[tertiary_color]">';
-			echo $html;
-
-		}
-		/*
-		register_setting(
-			'discussion',
-			'margin_notes_tertiary_color',
-			array(
-				'type'=>'string',
-				'description'=>'tertiary color'
-		));
-		*/
-		add_settings_field('margin_notes_tertiary_color','Annotation Text Color','echo_tertiary_color_input','discussion','margin_notes_color_settings');
-
-		//note background color setting
-
-		function echo_note_background_color_input(){
-
-			$option = get_option('margin_notes_display_options');
-			$value = isset( $option['note_background_color'] ) ? $option['note_background_color'] : '' ;
-
-			$html = '<p>Color for background of the notes. Defaults to white.</p>';
-			$html .= '<input type="text" id="margin_notes_note_background_color" value="'.$value.'" name="margin_notes_display_options[note_background_color]">';
-			echo $html;
-		}	
-		/*
-		register_setting(
-			'discussion',
-			'margin_notes_note_background_color',
-			array(
-				'type'=>'string',
-				'description'=>'note background color'
-		));
-		*/
-		add_settings_field('margin_notes_note_background_color','Annotation Background Color','echo_note_background_color_input','discussion','margin_notes_color_settings');
-
-		/*DISPLAY SETTINGS*/
-
-		add_settings_section('margin_notes_display_settings','Margin Notes Display Settings','__return_true','discussion');
-
+	public function checkbox ( $args ){
+		$setting = $args['setting'];
+		$name=$args['name'];
+		$description = $args['description'];
+		$val = $args['values'][0];
 		
 
-		//Width of annotations
+		$html = '';
+		$value = isset( $setting ) ? $setting : '' ;
+		print_r($value);
 
-		function echo_width_value (){
+		$html .= $this->get_description( $description );
+		$html .= '<input type="checkbox" value="'.$val.'" name="margin_notes_display_options['.$name.']" id="margin_notes_'.$name.'_'.$value.'" '.checked($value, $val, false). ' >';
 
-			$option = get_option("margin_notes_display_options");
-			$value = isset( $option['width_value'] ) ? $option['width_value'] : '' ;
+		echo $html;
+	}
+
+	public function setup_admin_settings (){
+
+		//if ( false === get_option('margin_notes_display_options') ){
+
+			register_setting(
+				'discussion',
+				'margin_notes_display_options',
+				array(
+					'type' => 'array',
+					'description' => 'display options for margin notes'
+				)
+			);
+
+		//}
+
+		$settings = get_option( 'margin_notes_display_options' );
+		$display_type = $settings['display_type'];
+
+		['sections' => $sections, 'fields' => $fields ] = $this->settings_parameters();
+		/*
+		$params = $this->settings_parameters();
+		$sections = $params['sections'];
+		$fields = $params['fields'];
+		*/
+		function echo_color_section_instructions(){
+			echo Margin_Notes::get_description( __( 'You can specify as many as four theme colors. Any color format accepted.', 'margin-notes') );
+		}
+
+		foreach ( $sections as $section => $args ) {
 			
-			$html = '<p>Specify a width your annotations should take up on large screens.</p>';
-			$html .= '<input type="text" value="'.$value.'" id="margin_notes_width_value" name="margin_notes_display_options[width_value]">';
-			echo $html;
+			add_settings_section( 'margin_notes_' . $section, $args['title'], $args['callback'], $args['page']  );
 
 		}
 
-		add_settings_field('margin_notes_width_value','Width Value','echo_width_value','discussion','margin_notes_display_settings');
+		foreach ( $fields as $field ){
 
-		function echo_width_unit (){
+			//conditionally hide certain fields only needed for margin display type
+			$display = '';
+			if ( $display_type === 'tooltips' && $field['section'] === 'display_settings' ){
+				if ( $field['name'] != 'display_type' && $field['name'] != 'hide_notes'){
+					$display='no-display';
+				}
+			}
 
-			$option = get_option("margin_notes_display_options");
-			$value = isset( $option['width_unit'] ) ? $option['width_unit'] : '';
 
-			$html = '<p>Specify a unit for the width of the annotations.</p><fieldset>';
-			$html .= '<label for="margin_notes_width_unit_px">px</label>';
-			$html .= '<input type="radio" name="margin_notes_display_options[width_unit]" value="px" id="margin_notes_width_unit_px" '.checked( 'px', $value, false ).' >';
-			$html .= '<label for="margin_notes_width_unit_%">%</label>';
-			$html .= '<input type="radio" name="margin_notes_display_options[width_unit]" value="%" id="margin_notes_width_unit_%" '.checked( '%', $value, false ).' >';
-			$html .= '<label for="margin_notes_width_unit_vw">vw</label>';
-			$html .= '<input type="radio" name="margin_notes_display_options[width_unit]" value="vw" id="margin_notes_width_unit_vw" '.checked( 'vw', $value, false ).' ></fieldset>';
-			echo $html;
-		}
+			//print_r($field['name']);
 
-		add_settings_field( 'margin_notes_width_unit' , "Width Unit" , 'echo_width_unit', 'discussion' , 'margin_notes_display_settings' );
-
-		//Which side of the page should annotations display on.
-
-		function echo_margin_select() {
-			
-			$option = get_option("margin_notes_display_options");
-			
-			if ( isset( $option['which_margin'] ) ){ $value = $option['which_margin']; } else { $value = '' ;}
-			
-			$html = 'The side of the page where annotations will appear.';
-			$html .= '<fieldset>';
-			$html .= '<label for="margin_notes_which_margin_left">Left</label>';
-			$html .= '<input type="radio" value="left" name="margin_notes_display_options[which_margin]" id="margin_notes_which_margin_left" '.checked( 'left', $value, false ).'>';
-			$html .= '<label for="margin_notes_which_margin_right">Right</label>';
-			$html .= '<input type="radio" value="right" name="margin_notes_display_options[which_margin]" id="margin_notes_which_margin_right" '.checked( 'right', $value, false ).'></fieldset>';
-			echo $html;
+			add_settings_field( 
+				'margin_notes_'.$field['name'],
+				$field['title'],
+				array( $this, $field['type'] ),
+				'discussion',
+				'margin_notes_'.$field['section'],
+				array(
+					'name' => $field['name'],
+					'description' => $field['desc'],
+					'setting' => $settings[ $field['name'] ],
+					'values' => isset( $field['values'] ) ? $field['values'] : array(),
+					'class' => $field['name'].' '.$display
+				)
+			);
 
 		}
 
-		add_settings_field( 'margin_notes_which_margin' , 'Choose Margin', 'echo_margin_select', 'discussion','margin_notes_display_settings');
-
-		function echo_hide_notes () {
-
-			$option = get_option("margin_notes_display_options");
-			$value = isset( $option['hide_notes'] ) ? $option['hide_notes'] : '';
-
-			$html = '<p>Check to hide annotations on all pages that have them. 
-			You will still be able to create new ones, but they won\'t show up while this box is checked.</p>';
-			$html .= '<input type="checkbox" value="false" name="margin_notes_display_options[hide_notes]" id="margin_notes_hide_notes" '.checked( 'false', $value, false ).' >';
-			echo $html;
-		}
-
-		add_settings_field( 'margin_notes_hide_notes' , 'Hide Notes' , 'echo_hide_notes' , 'discussion', 'margin_notes_display_settings' );
 		
 	}
 
-	public function get_form_data(){
+	public function load_back_end(){
 
+		wp_register_style( 'admin-style' ,plugins_url( '/lib/margin-notes-admin-style.css', __FILE__ ) );
+		wp_enqueue_style( 'admin-style' );
+
+		wp_register_script( 'admin-script', plugins_url( '/lib/margin-notes-admin.js', __FILE__ ), array('jquery'), '1.0.0' );
+		wp_enqueue_script( 'admin-script' );
+
+	}
+
+	public function get_form_data(){
+		
 		if ( ! wp_verify_nonce( $_POST['thoughts-on-article'], 'submit-annotation') ){
 			return;
 		}
+
+		$post = sanitize_text_field( $_POST['post-name'] );
+		$annotations = get_option('annotations');
+		$user = wp_get_current_user()->ID;
 		
+		if ( isset( $_POST['delete'] ) ){
+			$annotations[$user][$post]=array();
+			update_option( 'annotations' , $annotations );
+			update_option( 'margin_notes_html_string', '' );
+			$url = get_home_url() . '/index.php/' . $post;
+			wp_redirect( $url );
+		}
+
 		if ( $_POST['annotation'] ) {
-			$user = wp_get_current_user()->ID;
+
 			$text = str_replace(
 				array(
 					'&rsquo;',
@@ -475,29 +800,78 @@ class Margin_Notes {
 				htmlentities( sanitize_text_field( $_POST['highlight'] ) )
 			);
 			$annotation = sanitize_textarea_field( $_POST['annotation'] );
-			$post = sanitize_text_field( $_POST['post-name'] );
 			
-			$annotations = get_option('annotations');
 
 			//print_r($annotations);
 			
 			if ( ! $annotations[$user] ){
 				$annotations[$user]=array(
 					$post=>array(
-						$text=>$annotation
-					)
+						0 => array(
+								'source' => $text,
+								'annotation' => $annotation
+							 )
+						   )
 				);
 
 				//print_r($annotations);
 			} elseif ( ! $annotations[$user][$post] ){
 
 				$annotations[$user][$post]=array(
-					$text=>$annotation
+					0 => array(
+							'source' => $text,
+							'annotation' => $annotation
+						)
 				);
 
 			} else {
+				function find_last($str){
+					$words = explode(' ',$str);
+					$length = count( $words );
+					return $words[$length-1];
+				}
+				function get_source($arr){
+					return $arr['source'];
+				}
+				/*
+				$sources = array_map( 'get_source', $annotations[$user][$post] );
 
-				$annotations[$user][$post][$text]=$annotation;
+				$last_words = array_map( 'find_last', $sources );
+				$highlight_words = explode( ' ', $text );
+				/*print_r( $highlight_words );
+				print_r( $last_words );
+				foreach ( $last_words as $word ){
+					$key = array_search( $word , $highlight_words );
+			
+					if ( $key > -1 ){
+						print_r('key '.$key);
+						$key++;
+						if ( intval( $highlight_words[$key] > 0 ) ){
+							array_splice( $highlight_words, $key, 1);
+						}
+					}
+				}
+				
+				$text = implode( ' ', $highlight_words );	
+					/*$match = strpos( $text, $word );
+					if ( $match ){
+						$length = strlen($word) 
+						if ( intval() )
+					}*
+				}
+
+				/*function filter_footnote_digits( $str ){
+					return intval($str) > 0 && intval($str)
+				}
+
+				
+				array_filter()*/
+
+				$id = sizeof( $annotations[$user][$post] );
+				$annotations[$user][$post][$id] = array( 
+					'source' => $text, 
+					'annotation' => $annotation 
+				);
 
 				//print_r($annotations[$user][$post]);
 
@@ -507,24 +881,116 @@ class Margin_Notes {
 		
 			//print_r($annotations);
 		}
-
+		
 		//update_option( 'annotations' , array() );
+		//update_option( 'margin_notes_html_string', '' );
 		
 		$url = get_home_url() . '/index.php/' . $post;
-
+		
 		wp_redirect( $url );
+
 		
 	}
 
+	public function build_inline_styles(){
 
+		[
+			'primary_color' => $primary, 
+			'secondary_color' => $secondary, 
+			'tertiary_color' => $tertiary,
+			'note_background_color' => $note_background,
+			'display_type' => $display_type,
+			'which_margin' => $which_margin,
+			'width_value' => $width_value,
+			'width_unit' => $width_unit,
+		] = get_option('margin_notes_display_options');
 
-	public function get_post_types(){
+		$width = $width_value . $width_unit;
+		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
+		$annotation_style = "
+			.annotation,
+			.annotation-tooltip{
+				border-left: 3px solid $primary;
+				color: {$tertiary};
+				background: {$note_background};
+		";
+		
+		if ( $display_type === 'margins' ){
+			$annotation_style.= "
+								float: {$which_margin};
+								width: {$width}!important;
+								";
+		}
 
+		$annotation_style .= "}";
 
+		$highlight_style = "
+			.mn-highlight{
+				color:{$primary};
+			}
+		"; 
+
+		$delete_style = "
+			.mn-delete-annotation{
+				color:$primary;
+			}
+		";
+
+		//position form just off page on user's choice of left or right
+		$form_wrap_style = "
+			#margin-notes-wrapper{
+				width:$width;
+				$which_margin:$form_wrapper_offset;
+			}
+		";
+
+		$form_style = "
+			#margin-notes-form{
+				background:$primary;
+			}
+
+			#margin-notes-form label{
+				color:$secondary;
+			}
+
+			#margin-notes-form .surrogate-checkbox{
+				border:2px solid $secondary;
+			}
+
+			#margin-notes-form input[type=checkbox]:checked + .surrogate-checkbox{
+				background: $secondary;
+			}
+
+			#highlight-error{
+				color:$secondary;
+			}
+		";
+
+		$form_submit_style = "
+			#margin-notes-submit{
+				background:$primary;
+				color:$secondary;
+				border:2px solid $secondary;
+			}
+		";
+
+		$heading_style = "";
+		
+		if ( $display_type === 'margins' ){
+			$heading_style .= "h1,h2,h3,h4,h5,h6{
+				clear:none!important;
+			}";
+		}
+
+		return $annotation_style . $highlight_style . $delete_style . $form_wrap_style . $form_style . $form_submit_style . $heading_style;
+		
 	}
 
 	public function load_front_end (){
+
+
+
 
 		$disableStyles = apply_filters( 'margin_notes_disable_styles', false );
 
@@ -535,31 +1001,54 @@ class Margin_Notes {
 		if ( ! is_singular() ){
 			return;
 		}
-
+		//enqueue styles
 		wp_enqueue_style( 'margin_notes_style', plugins_url( '/lib/margin-notes-style.css', __FILE__ ) );
 
+		$user_styles = $this->build_inline_styles();
+		wp_add_inline_style( 'margin_notes_style', wp_kses( $user_styles, array("\'", '\"') ) );
+
+		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
 
 		$settings = get_option( 'margin_notes_display_options' );
+		$container = $settings['container_type'] === 'id' ? 
+					'#' . $settings['container'] : 
+					'.' . $settings['container'];
 
-		wp_localize_script('margin-notes', 'colors', array(
+		$nonce = wp_create_nonce( 'populate_annotations' );
+		$post_obj = get_post();
+		$post = $post_obj->post_name;
+		$content = get_the_content( null, false, $post_obj );
+
+		wp_localize_script('margin-notes', 'settings', array(
 				'primary_color' => $settings['primary_color'],
 				'secondary_color' => $settings['secondary_color'],
 				'note_background_color' => $settings['note_background_color'],
 				'tertiary_color' => $settings['tertiary_color'],
+				'width_value' => $settings['width_value'],
+				'width_unit' => $settings['width_unit'],
+				'direction' => $settings['which_margin'],
+				'container' => $container,
+				'ajaxURL' => admin_url('admin-ajax.php'),
+				'security' => $nonce,
+				'display_type' => $settings['display_type'],
+				'post' => $post,
+				'content' => $content,
+				'action' => admin_url( 'admin-post.php' ),
 			)
-		);
 
+		);
+		/*
 		wp_enqueue_script('ajax-script', plugins_url('/lib/annotation-ajax.js', __FILE__), array('jquery') );
 
-		$nonce = wp_create_nonce( 'populate_annotations' );
+		
 
 		wp_localize_script( 'ajax-script' , 'ajax_obj' , array(
 				'ajaxURL' => admin_url('admin-ajax.php'),
 				'security' => $nonce,
 			)
 		);
-
+		*/
 	}
 
 }
