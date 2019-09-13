@@ -18,18 +18,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License (https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) 
 for more details.
 
-//Todo
-	overlapping text?
-	refactor
-	security
-	validation
-	sanitize color inputs
-	how does hide notes work with tooltips
-	multi-liners in tooltip mode
-	handle string not found in text
-	media queries
-	form consistency across themes
-	prepend/append setting
+
 */
 
 defined('ABSPATH')||exit;
