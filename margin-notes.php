@@ -32,30 +32,19 @@ class Margin_Notes {
 	static $instance = false;
 
 	private function __construct() {
-		/*
-		add_action( 'rest_api_init', register_rest_route('margin-notes/v1','/annotation/(?\w+)',array(
-			'methods' => 'GET',
-			'callback' => array( $this, 'delete_annotation'),
-			'args' => array(
-				'source'
-			),
-			'permission_callback' => function(){
-				return current_user_can( 'annotate' );
-			}
-		));)
-		*/
 
-		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
-		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
+		//front-end
 		add_filter( 'the_content' , array( $this, 'filter_content') );
 		add_action( 'wp_enqueue_scripts', array( $this, 'load_front_end'));
-		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );	
-		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
-
+		
 		//back-end
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_back_end' ) );
 		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
-		//add_action( 'wp_ajax_delete_annotation', array( $this, 'delete_annotation' ) );
+		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );	
+		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
+		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
+		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
+		
 
 	}
 
@@ -112,6 +101,7 @@ class Margin_Notes {
 		$annotations = $site_annotations[$user][$post];
 	
 		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
+			update_option( 'margin_notes_html_string', '');
 			return $content;
 		}
 
@@ -153,64 +143,10 @@ class Margin_Notes {
 		
 		//all sorted
 			
-		
-		
 		$annotation_html = '';
 		$note_num = 0;
 		$margin_display = $settings['display_type'] === 'margins';
-
-		/*
-		foreach ( $annotations_by_index as $index => $data ) {
-
-			$current = current( $annotations_by_index );
-
-			$delete_url_query_string = sprintf('&action=delete_annotation&id-to-delete=%s&post=%s', $data['id'], $post ); 
-			$delete_url_base = wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation' , 'delete-annotation' );
-			$delete_url = $delete_url_base . $delete_url_query_string;
-			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), 'delete' );
-
-			$note_num++;
-						
-			if ( ! $settings['hide_notes'] && $margin_display ){
-					
-				$annotation_html .= sprintf( 
-					'<div class="annotation annotation-%d"><p>%d. %s</p>%s</div>', 
-					esc_attr( $data['id'] ), 
-					$note_num, 
-					esc_html( stripslashes( $data['annotation'] ) ),  
-					$delete_button 
-				);
-				
-			}
-				
-			if ( $margin_display ){
-				
-				$tag = sprintf( 
-					'<span class="mn-highlight annotation-%d" >%s <span class="sup">%d</span></span>', 
-					esc_attr( $data['id'] ), 
-					esc_html( $data['source'] ), 
-					$note_num
-				); 
-
-			} else {
-				//$nextIndex = $annotations_by_index
-				print_r( key( next( $annotations_by_index ) ) );
-
-				$tag = sprintf( '<span class="mn-highlight">%s<span class="annotation-tooltip">%s<br>%s</span></span>', esc_html( $data['source'] ), esc_html( stripslashes( $data['annotation'] ) ), $delete_button );
-			}
-
-			$source = '/'.$data['source'].'/';
-			$content=preg_replace( $source, $tag, $content, 1);
-
-		}
-
-			
-		if ( $margin_display ){
-			update_option( 'margin_notes_html_string', $annotation_html );
-		}
-
-		return $content;
-		*/
+		
 
 		while ( current( $annotations_by_index ) ) {
 			$current = current( $annotations_by_index );
@@ -274,7 +210,6 @@ class Margin_Notes {
 		
 		}
 		
-			
 		if ( $margin_display ){
 			update_option( 'margin_notes_html_string', $annotation_html );
 		}
@@ -329,86 +264,7 @@ class Margin_Notes {
 		//wp_die();
 	}
 
-	/*
-	public function delete_annotation() {
-		check_ajax_referer( 'delete_annotation' , 'secure_delete');
-		$annotations = get_option('annotations');
-		$html_string = get_option('margin_notes_html_string');
-		global $post;
-		//these are not user inputs so don't need to sanitize them
-		$user=wp_get_current_user()->ID;
-		$post=$_POST['post'];
-		$id=$_POST['id'];
-
-		$removed=array_splice( $annotations[$user][$post], $id, 1);
-
-		$string_to_cut = str_replace(
-				array(
-					'&rsquo;',
-					'&lsquo;',
-					'&ldquo;',
-					'&rdquo;',
-				),array(
-					'&#8217;',
-					'&#8216;',
-					'&#8220;',
-					'&#8221;'
-				), $removed[$id]['source']);
-
-		$html_string=str_replace( $string_to_cut , '' , $html_string[$post] );
-		
-		
-
-		update_option( 'annotations', $annotations) ;
-		update_option( 'margin_notes_html_string', $html_string);
-		
-		wp_send_json($string_to_cut);
-
-		wp_die();
-	}
-	*/
-	/*
-	public function get_annotation_html( $annotations_by_index ){
-
-		$settings = get_option('margin_notes_display_options');
-
-		if ( $settings['tooltip_display'] === 'margin_notes' ){
-
-			$annotation_style = 'border-left:3px solid '.$settings['primary_color'].';
-									color:'.$settings['tertiary_color'].';
-									background:'.$settings['note_background_color'].';
-									width:'.$settings['width_value'].$settings['width_unit'].';
-									float:'.$settings['which_margin'];
-			
-			$annotation_html = '';
-			
-			$note_num = 0;
-			foreach ( $annotations_by_index as $index => $data) {
-				$note_num++;
-
-				//border-left:3px solid '.$settings['primary_color'].';color:'.$settings['tertiary_color'].';background:'.$settings['note_background_color'].'					
-				if ( ! $settings['hide_notes'] ){
-
-					$delete_button = '<button class="delete-annotation" style="'.$delete_button_style.'" id="delete-'.$post.'-'.esc_attr( $data['id'] ).'">delete</button>';
-
-					$annotation_html .= '<div class="annotation annotation-'.$data['id'].'" style="'.$annotation_style.'">'.$delete_button.'<p>'.$note_num.'. '.esc_html( stripslashes( $data['annotation'] ) ).'</p></div>';
-				}
-				
-				$tag = '<span class="highlight annotation-'.$data['id'].'" style="'.$highlight_style.'" >'.$data['source'].' <span class="sup">'.$note_num.'</span></span>';
-				
-				$source = '/'.$data['source'].'/';
-				$content=preg_replace( $source, $tag, $content, 1);
-
-			}
-
-			//print_r($html_string);
-			
-			$html_string[$post] = $annotation_html;
-
-			update_option('margin_notes_html_string', $html_string )
-
-	}
-	*/
+	
 	public function print_annotation_form( $content ){
 
 		if ( ! is_singular() ){
@@ -452,7 +308,7 @@ class Margin_Notes {
 				);
 		$html .= sprintf( '<input type="text" name="post-name" id="post-name" readonly="readonly" value="%s">', esc_attr(get_post()->post_name) );
 		$html .= '<label>'.__('Copy and paste source text for your annotation.');
-		$html .= '<input name="highlight" required id="highlight-input" type="text"></label>';
+		$html .= '<input name="highlight" id="highlight-input" type="text"></label>';
 		$html .= '<p id="highlight-error"></p>';
 		$html .= '<label>'.__('Create an annotation.');
 		$html .= '<textarea name="annotation" rows="10" id="annotation-input" placeholder="your thoughts ... " type="text">';
@@ -677,6 +533,25 @@ class Margin_Notes {
 		echo $html;
 	}
 
+	public function replace_quotes( $str ){
+
+		return str_replace(
+			array(
+				'&rsquo;',
+				'&lsquo;',
+				'&ldquo;',
+				'&rdquo;',
+			),array(
+				'&#8217;',
+				'&#8216;',
+				'&#8220;',
+				'&#8221;'
+			), 
+			htmlentities( sanitize_text_field( $str ) )
+		);
+
+	}
+
 	public function setup_admin_settings (){
 
 		//if ( false === get_option('margin_notes_display_options') ){
@@ -772,25 +647,11 @@ class Margin_Notes {
 			wp_redirect( $url );
 		}
 
-		if ( $_POST['annotation'] ) {
+		else if ( $_POST['annotation'] ) {
 
-			$text = str_replace(
-				array(
-					'&rsquo;',
-					'&lsquo;',
-					'&ldquo;',
-					'&rdquo;',
-				),array(
-					'&#8217;',
-					'&#8216;',
-					'&#8220;',
-					'&#8221;'
-				), 
-				htmlentities( sanitize_text_field( $_POST['highlight'] ) )
-			);
+			$text = $this->replace_quotes( $_POST['highlight'] );
 			$annotation = sanitize_textarea_field( $_POST['annotation'] );
 			
-
 			//print_r($annotations);
 			
 			if ( ! $annotations[$user] ){
@@ -1007,7 +868,7 @@ class Margin_Notes {
 		$nonce = wp_create_nonce( 'populate_annotations' );
 		$post_obj = get_post();
 		$post = $post_obj->post_name;
-		$content = get_the_content( null, false, $post_obj );
+		$content = wptexturize( get_the_content( null, false, $post_obj ) );
 
 		wp_localize_script('margin-notes', 'settings', array(
 				'primary_color' => $settings['primary_color'],
