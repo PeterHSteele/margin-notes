@@ -65,6 +65,10 @@ class Margin_Notes {
 
 		add_option('margin_notes_html_string', array() );
 		add_option( "annotations" , '' );
+<<<<<<< HEAD
+=======
+		self::add_reader_role();
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 		//self::setup_admin_settings();
 	}
 
@@ -93,13 +97,22 @@ class Margin_Notes {
 
 	public function show_annotations( $content ) {
 		
+<<<<<<< HEAD
 		$site_annotations = get_option( 'annotations ');
 		$html_string = get_option( 'margin_notes_html_string' );
+=======
+		$site_annotations = get_option('annotations');
+		$html_string = get_option('margin_notes_html_string');
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 		$user = wp_get_current_user()->ID;
 		$post = get_post()->post_name;
 		$annotations = $site_annotations[$user][$post];
 	
+<<<<<<< HEAD
 		if ( ! $annotations || ! is_singular() ){
+=======
+		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 			update_option( 'margin_notes_html_string', '');
 			return $content;
 		}
@@ -219,9 +232,15 @@ class Margin_Notes {
 
 	public function handle_annotations(){
 		check_ajax_referer('populate_annotations' , 'security' );
+<<<<<<< HEAD
 		/*if ( ! current_user_can ( 'annotate' ) ){
 			wp_die();
 		}*/
+=======
+		if ( ! current_user_can ( 'annotate' ) ){
+			wp_die();
+		}
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 
 		$post = $_POST['post'];
 
@@ -270,9 +289,15 @@ class Margin_Notes {
 			return $content;
 		}
 
+<<<<<<< HEAD
 		/*if ( ! current_user_can( 'annotate' ) ){
 			return $content;
 		} */
+=======
+		if ( ! current_user_can( 'annotate' ) ){
+			return $content;
+		} 
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 
 		include 'lib/check_icon.php';
 
@@ -838,6 +863,12 @@ class Margin_Notes {
 
 	public function load_front_end (){
 
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 		$disableStyles = apply_filters( 'margin_notes_disable_styles', false );
 
 		if ( $disableStyles ) {
