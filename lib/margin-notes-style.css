@@ -1,0 +1,241 @@
+:root{
+	--lightBlue:rgb(33,195,244);
+}
+
+.no-display{
+	display:none;
+}
+
+.margin-notes-wrapper{
+	box-sizing:border-box;
+	font-family: sans-serif;
+	position:fixed;
+	top:80px;
+}
+
+.margin-notes-wrapper-left{
+	left:0;
+}
+
+.margin-notes-wrapper-right{
+	right:0;
+}
+
+#post-name{
+	position:absolute;
+	right:10000px;
+}
+
+/* Form */
+
+.margin-notes-form{
+	box-sizing:border-box;
+	font-family: sans-serif;
+	padding:.5em;
+	font-size: 16px;
+	position:relative;
+	overflow:hidden;
+}
+
+.margin-notes-wrapper-right {
+	transition: right .5s;
+	right:-100%;
+}
+
+.margin-notes-wrapper-left {
+	transition: left .5s;
+	/*left: -100%;*/
+}
+/*
+.margin-notes-wrapper-right.expand {
+	right:0px;
+}
+
+.margin-notes-wrapper-left.expand{
+	left: 0px;
+}
+*/
+#highlight-input,
+.margin-notes-form textarea{
+	width:100%;
+	font-size: 1em;
+	border-radius:5px;
+	padding:.1em;
+}
+
+.margin-notes-wrapper textarea{
+	display:block;
+	resize:none;
+	margin: .5em 0;
+}
+/*
+.margin-notes-form label{
+	display:block;
+}
+
+.margin-notes-form label,
+.margin-notes-form input,
+.margin-notes-form textarea
+{
+	width:95%;
+	margin:2.5% auto;
+}
+*/
+.margin-notes-form input,
+.margin-notes-form textarea{
+	box-sizing:border-box;
+	border:none;
+	color:rgb(100,100,100);
+}
+
+#margin-notes-form input[type=checkbox]{
+	position:absolute;
+	right:10000px;
+}
+
+#margin-notes-form input[type=checkbox]:checked + .surrogate-checkbox{
+
+}
+
+#margin-notes-form label svg{
+	height:1em;
+	width: 1em;
+}
+
+#margin-notes-form input[type=checkbox]:checked + svg {
+	fill:white;
+}
+
+.surrogate-checkbox{
+	width: 1em;
+	height: 1em;
+	float:right;
+	margin-right: 1em;
+}
+
+.colored-border{
+	border-radius: 5px;
+}
+
+#margin-notes-submit {
+	margin: 5px auto 0;
+	box-shadow:none;
+	padding:.5em;
+	width:auto;
+}
+
+#margin-notes-submit:hover{
+	/*background: white;
+	color:var(--lightBlue);*/
+	transform:scale(1.1);
+}
+
+#margin-notes-add {
+	outline:none;
+	position:fixed;
+	top:40px;
+	right:5px;
+	border-radius:50%;
+	padding:0;
+	height:20px;
+	width:20px;
+}	
+
+.margin-notes-add svg{
+	height:20px;
+	width:20px;
+	object-fit:contain;
+}
+
+.mn-highlight{
+	color:var(--lightBlue);
+	position:relative;
+}
+
+.annotation,
+.annotation-tooltip{
+	font-size: .8em;
+	padding:.5em;
+}
+
+.annotation {
+	position:relative;
+	line-height: 1em;	
+	width:30%;
+	clear:both;
+	z-index:0;
+}
+
+.annotation p{
+	margin:0;
+	color:inherit;
+}
+
+.annotation-tooltip{
+	display:none;
+	line-height: 1em;	
+	padding:.5em;
+	z-index: 10;
+	position:absolute;
+	top:100%;
+	left:0;
+	min-width: 300px;
+	/*box-shadow: 3px 3px 15px 1px rgb(100,100,100);*/
+	box-shadow: 5px 5px rgb(100,100,100);
+	transition: opacity .4s, scale .4s;
+}
+
+.annotation .mn-delete-annotation,	
+.annotation-tooltip .mn-delete-annotation{
+	font-size: .8em;
+	display:block;
+	float:right;
+	clear:both;
+	margin-top:5px;
+}
+
+.mn-highlight:hover > .annotation-tooltip{
+	display:block;
+	
+}
+
+#margin-notes-delete-annotation {
+	float:right;
+	padding:0;
+	margin:0;
+	display:inline;
+}
+
+#margin-notes-delete-annotation-button{
+	border-radius:0;
+	box-shadow: none;
+	width:auto;
+	border:none;
+	font-size: .7em;
+	padding:.2em;
+	margin:0;
+}
+
+button.delete-annotation:hover{
+	color:green;
+	transform:scale(1.5);
+}
+
+.sup {
+	position:relative;
+	bottom:6px;
+	font-size: .6em;
+}
+
+
+@media screen and (max-width: 400px){
+	.margin-notes-wrapper{
+		width:100%;
+		right:0;
+	}
+
+
+	.margin-notes-form{
+		width:100%;
+	}
+}
