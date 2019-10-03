@@ -202,7 +202,7 @@ class Margin_Notes {
 
 			} else {
 				
-
+			print_r($source);
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d">%s</span>', 
 					esc_attr( $current['id'] ),
@@ -222,10 +222,10 @@ class Margin_Notes {
 		if ( $margin_display ){
 			update_option( 'margin_notes_html_string', $annotation_html );
 		} else {
-			$content .= '<div class="annotation-tooltip no-display"><div class="spacer"><div class="tip-content">';
+			$content .= '<div id="annotation-tooltip" class="annotation-tooltip no-display"><div class="spacer"><div class="tip-content">';
 			$content .=	'<p class="annotation-body"></p>';
 			$content .= sprintf( '<a class="%s" href="#">%s</a>', 'mn-delete-annotation', 'delete' );
-			$content .= '</div><div class="tri"></div></div></div>';
+			$content .= '</div><div id="mn-tri" class="tri"></div></div></div>';
 		}
 		
 		return $content;
@@ -333,7 +333,7 @@ class Margin_Notes {
 		$html .= '<label>'.__('Delete all annotations on this page.');
 		$html .= '<input type="checkbox" id="deleteAll" value="delete" name="delete">';
 		$html .= sprintf( 
-					'<div class="surrogate-checkbox colored-border">%s</div>',
+					/*'<div class="surrogate-checkbox colored-border">*/'%s',/*</div>',*/
 					renderCheck( $settings['primary_color'], $settings['secondary_color'] )
 				);
 		$html .= '</label>';
@@ -831,12 +831,12 @@ class Margin_Notes {
 				color:$secondary;
 			}
 
-			#margin-notes-form .surrogate-checkbox{
-				border:2px solid $secondary;
+			#margin-notes-form input[type=checkbox]:checked + svg line{
+				stroke:$primary;
 			}
 
-			#margin-notes-form input[type=checkbox]:checked + .surrogate-checkbox{
-				background: $secondary;
+			#margin-notes-form input[type=checkbox]:checked + svg rect{
+				fill: $secondary;
 			}
 
 			#highlight-error{

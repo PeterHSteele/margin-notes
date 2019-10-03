@@ -11,6 +11,7 @@
 	font-family: sans-serif;
 	position:fixed;
 	top:80px;
+	z-index: 10000;
 }
 
 .margin-notes-wrapper-left{
@@ -28,7 +29,7 @@
 
 /* Form */
 
-.margin-notes-form{
+#margin-notes-form{
 	box-sizing:border-box;
 	font-family: sans-serif;
 	padding:.5em;
@@ -55,6 +56,13 @@
 	left: 0px;
 }
 */
+
+
+#highlight-error{
+	margin: 0;
+	padding: .2em 0;
+}
+
 #highlight-input,
 .margin-notes-form textarea{
 	width:100%;
@@ -68,11 +76,11 @@
 	resize:none;
 	margin: .5em 0;
 }
-/*
+
 .margin-notes-form label{
 	display:block;
 }
-
+/*
 .margin-notes-form label,
 .margin-notes-form input,
 .margin-notes-form textarea
@@ -93,24 +101,11 @@
 	right:10000px;
 }
 
-#margin-notes-form input[type=checkbox]:checked + .surrogate-checkbox{
-
-}
-
 #margin-notes-form label svg{
 	height:1em;
 	width: 1em;
-}
-
-#margin-notes-form input[type=checkbox]:checked + svg {
-	fill:white;
-}
-
-.surrogate-checkbox{
-	width: 1em;
-	height: 1em;
 	float:right;
-	margin-right: 1em;
+	margin: .3em 1em 0 0;
 }
 
 .colored-border{
@@ -118,10 +113,12 @@
 }
 
 #margin-notes-submit {
+	display:block;
 	margin: 5px auto 0;
 	box-shadow:none;
 	padding:.5em;
-	width:auto;
+	width:15%;
+	min-width: 5em;
 }
 
 #margin-notes-submit:hover{
@@ -135,6 +132,7 @@
 	position:fixed;
 	top:40px;
 	right:5px;
+	border:none;
 	border-radius:50%;
 	padding:0;
 	height:20px;
@@ -215,7 +213,7 @@ button.delete-annotation:hover{
 
 
 /* tooltips */
-.tri {
+#mn-tri {
 	  width:0;
 	  height:0;
 	  border-left:15px solid transparent;
@@ -231,20 +229,20 @@ button.delete-annotation:hover{
   background:transparent!important;
 }
 
-.annotation-tooltip{
+#annotation-tooltip{
 	padding: 0;
 	line-height: 1em;
 	z-index: 10;
 	position:absolute;
 	top:100%;
 	left:0;
-	min-width: 300px;
+	width: 300px;
 	background:transparent;
 	/*box-shadow: 3px 3px 15px 1px rgb(100,100,100);*/
 	transition: opacity .4s, scale .4s;
 }
 
-.annotation-tooltip p{
+#annotation-tooltip p{
 	margin: 0;
 }
 
@@ -256,7 +254,7 @@ button.delete-annotation:hover{
 
 .annotation-tooltip div.tip-content{
 	margin: 0;
-	padding: .2em;
+	padding: .5em .2em;
 	box-shadow: 0px 20px 40px 0px rgb(145,150,155);
 }
 
