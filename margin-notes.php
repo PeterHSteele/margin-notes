@@ -63,8 +63,8 @@ class Margin_Notes {
 			return;
 		}
 
-		add_option('margin_notes_html_string', array() );
-		add_option( "annotations" , '' );
+		add_option('margin_notes_html_string', '' );
+		add_option( "annotations" , array() );
 
 
 		self::add_reader_role();
