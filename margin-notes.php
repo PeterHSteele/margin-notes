@@ -459,7 +459,7 @@ class Margin_Notes {
 				'title' => 'Choose Margin',
 				'type' => 'radio_group',
 				'section' => 'display_settings',
-				'desc' => __( 'The side of the page where annotations will appear.', 'margin-notes'),
+				'desc' => __( 'The side of the page where annotations will appear and from which the form will slide out.', 'margin-notes'),
 				'values' => array( 'left', 'right' ),
 			),
 			array(
@@ -608,7 +608,7 @@ class Margin_Notes {
 			//conditionally hide certain fields only needed for margin display type
 			$display = '';
 			if ( $display_type === 'tooltips' && $field['section'] === 'display_settings' ){
-				if ( $field['name'] != 'display_type' && $field['name'] != 'hide_notes'){
+				if ( $field['name'] != 'display_type' && $field['name'] != 'hide_notes' && $field['name'] != 'which_margin' ){
 					$display='no-display';
 				}
 			}
@@ -786,6 +786,7 @@ class Margin_Notes {
 				width: {$width}!important;
 			}
 		";
+
 		} else{
 			$annotation_style = "
 			.annotation-tooltip div.tip-content{
@@ -798,9 +799,14 @@ class Margin_Notes {
 				border-bottom: 10px solid {$note_background};
 			}
 		";
+
 		}
 
-
+		$add_button_style = "
+			#margin-notes-add{
+				${which_margin}: 5px
+			}
+		";
 
 		$highlight_style = "
 			.mn-highlight{
@@ -860,7 +866,7 @@ class Margin_Notes {
 			}";
 		}
 
-		return $annotation_style . $highlight_style . $delete_style . $form_wrap_style . $form_style . $form_submit_style . $heading_style;
+		return $annotation_style . $highlight_style . $delete_style . $form_wrap_style . $form_style . $form_submit_style . $heading_style . $add_button_style;
 		
 	}
 
