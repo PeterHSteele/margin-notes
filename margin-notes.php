@@ -65,10 +65,10 @@ class Margin_Notes {
 
 		add_option('margin_notes_html_string', array() );
 		add_option( "annotations" , '' );
-<<<<<<< HEAD
-=======
+
+
 		self::add_reader_role();
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
+
 		//self::setup_admin_settings();
 	}
 
@@ -96,23 +96,14 @@ class Margin_Notes {
 	}
 
 	public function show_annotations( $content ) {
-		
-<<<<<<< HEAD
+
 		$site_annotations = get_option( 'annotations ');
 		$html_string = get_option( 'margin_notes_html_string' );
-=======
-		$site_annotations = get_option('annotations');
-		$html_string = get_option('margin_notes_html_string');
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 		$user = wp_get_current_user()->ID;
 		$post = get_post()->post_name;
 		$annotations = $site_annotations[$user][$post];
 	
-<<<<<<< HEAD
-		if ( ! $annotations || ! is_singular() ){
-=======
 		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 			update_option( 'margin_notes_html_string', '');
 			return $content;
 		}
@@ -144,7 +135,7 @@ class Margin_Notes {
 				}
 			}
 		
-			$annotations_by_index[$index]=array( 
+			$annotations_by_index[$index] = array( 
 				'source' => $annotation['source'],
 				'annotation' => $annotation['annotation'], 
 				'id' => $id
@@ -212,7 +203,13 @@ class Margin_Notes {
 			} else {
 				
 
-				$tag = sprintf( '<span class="mn-highlight">%s<span class="annotation-tooltip">%s<br>%s</span></span>', esc_html( $source ), esc_html( stripslashes( $current['annotation'] ) ), $delete_button );
+				$tag = sprintf( 
+					'<span class="mn-highlight annotation-%d">%s</span>', 
+					esc_attr( $current['id'] ),
+					esc_html( $source )
+					/*esc_html( stripslashes( $current['annotation'] ) ), 
+					$delete_button */
+				);
 			}
 
 			$source = '/'.$source.'/';
@@ -224,6 +221,11 @@ class Margin_Notes {
 		
 		if ( $margin_display ){
 			update_option( 'margin_notes_html_string', $annotation_html );
+		} else {
+			$content .= '<div class="annotation-tooltip no-display"><div class="spacer"><div class="tip-content">';
+			$content .=	'<p class="annotation-body"></p>';
+			$content .= sprintf( '<a class="%s" href="#">%s</a>', 'mn-delete-annotation', 'delete' );
+			$content .= '</div><div class="tri"></div></div></div>';
 		}
 		
 		return $content;
@@ -232,15 +234,10 @@ class Margin_Notes {
 
 	public function handle_annotations(){
 		check_ajax_referer('populate_annotations' , 'security' );
-<<<<<<< HEAD
-		/*if ( ! current_user_can ( 'annotate' ) ){
-			wp_die();
-		}*/
-=======
+
 		if ( ! current_user_can ( 'annotate' ) ){
 			wp_die();
 		}
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 
 		$post = $_POST['post'];
 
@@ -289,15 +286,11 @@ class Margin_Notes {
 			return $content;
 		}
 
-<<<<<<< HEAD
-		/*if ( ! current_user_can( 'annotate' ) ){
-			return $content;
-		} */
-=======
+
 		if ( ! current_user_can( 'annotate' ) ){
 			return $content;
 		} 
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
+
 
 		include 'lib/check_icon.php';
 
@@ -782,22 +775,32 @@ class Margin_Notes {
 		$width = $width_value . $width_unit;
 		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
-		$annotation_style = "
-			.annotation,
-			.annotation-tooltip{
+
+		if ( $display_type === 'margins' ){
+			$annotation_style = "
+			.annotation{
 				border-left: 3px solid $primary;
 				color: {$tertiary};
 				background: {$note_background};
+				float: {$which_margin};
+				width: {$width}!important;
+			}
 		";
-		
-		if ( $display_type === 'margins' ){
-			$annotation_style.= "
-								float: {$which_margin};
-								width: {$width}!important;
-								";
+		} else{
+			$annotation_style = "
+			.annotation-tooltip div.tip-content{
+				border-left: 3px solid $primary;
+				color: {$tertiary};
+				background: {$note_background};
+			}
+
+			.tri{
+				border-bottom: 10px solid {$note_background};
+			}
+		";
 		}
 
-		$annotation_style .= "}";
+
 
 		$highlight_style = "
 			.mn-highlight{
@@ -863,12 +866,6 @@ class Margin_Notes {
 
 	public function load_front_end (){
 
-<<<<<<< HEAD
-=======
-
-
-
->>>>>>> c9e5ece497d13b87451fbe7377b3f127e57cb203
 		$disableStyles = apply_filters( 'margin_notes_disable_styles', false );
 
 		if ( $disableStyles ) {
@@ -892,10 +889,13 @@ class Margin_Notes {
 					'#' . $settings['container'] : 
 					'.' . $settings['container'];
 
-		$nonce = wp_create_nonce( 'populate_annotations' );
-		$post_obj = get_post();
-		$post = $post_obj->post_name;
-		$content = wptexturize( get_the_content( null, false, $post_obj ) );
+		$nonce 			= wp_create_nonce( 'populate_annotations' );
+		$post_obj 		= get_post();
+		$post 			= $post_obj->post_name;
+		$content 		= wptexturize( get_the_content( null, false, $post_obj ) );
+		$user 			= wp_get_current_user()->ID;
+		$annotations 	= get_option( 'annotations' )[ $user ][ $post ];
+		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
 
 		wp_localize_script('margin-notes', 'settings', array(
 				'primary_color' => $settings['primary_color'],
@@ -911,7 +911,8 @@ class Margin_Notes {
 				'display_type' => $settings['display_type'],
 				'post' => $post,
 				'content' => $content,
-				'action' => admin_url( 'admin-post.php' ),
+				'annotations' => $annotations,
+				'delete_url' => $delete_url
 			)
 
 		);
