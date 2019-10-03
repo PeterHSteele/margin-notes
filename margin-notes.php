@@ -1,6 +1,6 @@
 <?php
 /*
- *Plugin Name: Margin Notes
+ *Plugin Name: Margin Notes Demo
  *Description: Allows subscribers to annotate articles on your site
  *Author:Peter Steele
  *Version:1.0.0
@@ -44,6 +44,7 @@ class Margin_Notes {
 		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
+		add_action( 'admin_post_nopriv_annotation' , array( $this, 'get_form_data') );
 		
 
 	}
@@ -58,16 +59,16 @@ class Margin_Notes {
 	}
 
 	public static function on_activation(){
-
+		
 		if ( !current_user_can( 'activate_plugins' ) ){
 			return;
 		}
 
-		add_option('margin_notes_html_string', array() );
-		add_option( "annotations" , '' );
+		update_option('margin_notes_html_string', '' );
+		update_option( "annotations" , array() );
 
 
-		self::add_reader_role();
+		/*self::add_reader_role();*/
 
 		//self::setup_admin_settings();
 	}
@@ -78,7 +79,7 @@ class Margin_Notes {
 			return;
 		}
 
-		self::remove_reader_role();
+		//self::remove_reader_role();
 	}
 
 	public static function on_uninstall(){
@@ -98,12 +99,12 @@ class Margin_Notes {
 	public function show_annotations( $content ) {
 
 		$site_annotations = get_option( 'annotations ');
+
 		$html_string = get_option( 'margin_notes_html_string' );
-		$user = wp_get_current_user()->ID;
 		$post = get_post()->post_name;
-		$annotations = $site_annotations[$user][$post];
+		$annotations = $site_annotations[$post];
 	
-		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
+		if ( ! $annotations || ! is_singular() ){
 			update_option( 'margin_notes_html_string', '');
 			return $content;
 		}
@@ -202,7 +203,6 @@ class Margin_Notes {
 
 			} else {
 				
-			print_r($source);
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d">%s</span>', 
 					esc_attr( $current['id'] ),
@@ -235,10 +235,6 @@ class Margin_Notes {
 	public function handle_annotations(){
 		check_ajax_referer('populate_annotations' , 'security' );
 
-		if ( ! current_user_can ( 'annotate' ) ){
-			wp_die();
-		}
-
 		$post = $_POST['post'];
 
 		$annotation_html = get_option('margin_notes_html_string');
@@ -255,7 +251,7 @@ class Margin_Notes {
 		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
 		
 		if ( ! wp_verify_nonce($req['delete-annotation'], 'delete-annotation') ){
-			print_r('nonce fail');
+			
 			return;
 		}
 		//$req = isset($_POST) ? $_POST : $_GET;
@@ -264,10 +260,9 @@ class Margin_Notes {
 	
 		$post  = $req['post'];
 		//print_r($post);
-		$user = wp_get_current_user()->ID;
 		$annotations = get_option('annotations');
 
-		array_splice( $annotations[$user][$post], $id, 1);
+		array_splice( $annotations[$post], $id, 1);
 
 		update_option( 'annotations', $annotations );
 		update_option( 'margin_notes_html_string', '');
@@ -285,11 +280,6 @@ class Margin_Notes {
 		if ( ! is_singular() ){
 			return $content;
 		}
-
-
-		if ( ! current_user_can( 'annotate' ) ){
-			return $content;
-		} 
 
 
 		include 'lib/check_icon.php';
@@ -542,7 +532,7 @@ class Margin_Notes {
 
 		$html = '';
 		$value = isset( $setting ) ? $setting : '' ;
-		print_r($value);
+		//print_r($value);
 
 		$html .= $this->get_description( $description );
 		$html .= '<input type="checkbox" value="'.$val.'" name="margin_notes_display_options['.$name.']" id="margin_notes_'.$name.'_'.$value.'" '.checked($value, $val, false). ' >';
@@ -649,15 +639,15 @@ class Margin_Notes {
 	public function get_form_data(){
 		
 		if ( ! wp_verify_nonce( $_POST['thoughts-on-article'], 'submit-annotation') ){
+			
 			return;
 		}
 
 		$post = sanitize_text_field( $_POST['post-name'] );
 		$annotations = get_option('annotations');
-		$user = wp_get_current_user()->ID;
 		
 		if ( isset( $_POST['delete'] ) ){
-			$annotations[$user][$post]=array();
+			$annotations[$post]=array();
 			update_option( 'annotations' , $annotations );
 			update_option( 'margin_notes_html_string', '' );
 			$url = get_home_url() . '/index.php/' . $post;
@@ -671,27 +661,18 @@ class Margin_Notes {
 			
 			//print_r($annotations);
 			
-			if ( ! $annotations[$user] ){
-				$annotations[$user]=array(
-					$post=>array(
+			if ( ! $annotations[$post] ){
+				$annotations[$post]=array(
+					
 						0 => array(
 								'source' => $text,
 								'annotation' => $annotation
 							 )
-						   )
+						  
 				);
 
 				//print_r($annotations);
-			} elseif ( ! $annotations[$user][$post] ){
-
-				$annotations[$user][$post]=array(
-					0 => array(
-							'source' => $text,
-							'annotation' => $annotation
-						)
-				);
-
-			} else {
+			 } else {
 				function find_last($str){
 					$words = explode(' ',$str);
 					$length = count( $words );
@@ -734,8 +715,8 @@ class Margin_Notes {
 				
 				array_filter()*/
 
-				$id = sizeof( $annotations[$user][$post] );
-				$annotations[$user][$post][$id] = array( 
+				$id = sizeof( $annotations[$post] );
+				$annotations[$post][$id] = array( 
 					'source' => $text, 
 					'annotation' => $annotation 
 				);
@@ -751,6 +732,8 @@ class Margin_Notes {
 		
 		//update_option( 'annotations' , array() );
 		//update_option( 'margin_notes_html_string', '' );
+
+
 		
 		$url = get_home_url() . '/index.php/' . $post;
 		
@@ -893,8 +876,7 @@ class Margin_Notes {
 		$post_obj 		= get_post();
 		$post 			= $post_obj->post_name;
 		$content 		= wptexturize( get_the_content( null, false, $post_obj ) );
-		$user 			= wp_get_current_user()->ID;
-		$annotations 	= get_option( 'annotations' )[ $user ][ $post ];
+		$annotations 	= get_option( 'annotations' )[ $post ];
 		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
 
 		wp_localize_script('margin-notes', 'settings', array(
