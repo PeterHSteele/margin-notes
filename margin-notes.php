@@ -52,7 +52,7 @@ class Margin_Notes {
 
 	public function get_instance(){
 		
-		if (!self::$instance){
+		if ( !self::$instance ){
 			self::$instance = new self;
 		}
 		
@@ -65,7 +65,7 @@ class Margin_Notes {
 			return;
 		}
 
-		update_option('margin_notes_html_string', '' );
+		update_option( 'margin_notes_html_string', '' );
 		update_option( "annotations" , array() );
 
 
