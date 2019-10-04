@@ -63,7 +63,7 @@ class Margin_Notes {
 			return;
 		}
 
-		add_option('margin_notes_html_string', '' );
+		add_option( 'margin_notes_html_string', '' );
 		add_option( "annotations" , array() );
 
 
