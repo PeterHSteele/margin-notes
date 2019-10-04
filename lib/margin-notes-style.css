@@ -12,6 +12,7 @@
 	position:fixed;
 	top:80px;
 	z-index: 10000;
+	width:25%;
 }
 
 .margin-notes-wrapper-left{
@@ -40,14 +41,15 @@
 
 .margin-notes-wrapper-right {
 	transition: right .5s;
-	right:-100%;
+	right:-25%;
 }
 
 .margin-notes-wrapper-left {
 	transition: left .5s;
+	left:-25%;
 	/*left: -100%;*/
 }
-/*
+
 .margin-notes-wrapper-right.expand {
 	right:0px;
 }
@@ -55,7 +57,6 @@
 .margin-notes-wrapper-left.expand{
 	left: 0px;
 }
-*/
 
 
 #highlight-error{
@@ -258,15 +259,38 @@ button.delete-annotation:hover{
 	box-shadow: 0px 20px 40px 0px rgb(145,150,155);
 }
 
+@media screen and (max-width: 700px){
+	.margin-notes-wrapper-left{
+		width:50%;
+		left:-50%;
+	}
+
+	.margin-notes-wrapper-right{
+		width:50%;
+		right:-50%;
+	}
+
+	/*
+	#margin-notes-form{
+		width:100%;
+	}
+	*/
+}
 
 @media screen and (max-width: 400px){
-	.margin-notes-wrapper{
+	.margin-notes-wrapper-right{
 		width:100%;
-		right:0;
+		right:-100%;
 	}
 
+	.margin-notes-wrapper-left{
+		width:100%;
+		left:-100%;
+	}
 
-	.margin-notes-form{
+	/*
+	#margin-notes-form{
 		width:100%;
 	}
+	*/
 }
