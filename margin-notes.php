@@ -34,7 +34,7 @@ class Margin_Notes {
 	private function __construct() {
 
 		//front-end
-		add_filter( 'the_content' , array( $this, 'filter_content') );
+		add_filter( 'the_content' , array( $this, 'filter_content'), 10000 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'load_front_end'));
 		
 		//back-end
@@ -43,6 +43,7 @@ class Margin_Notes {
 		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );	
 		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
+		add_action( 'admin_post_nopriv_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
 		add_action( 'admin_post_nopriv_annotation' , array( $this, 'get_form_data') );
 		
@@ -88,11 +89,16 @@ class Margin_Notes {
 
 	public function filter_content( $content ){
 
-		$content = $this->print_annotation_form( $content );
-		
-		$content = $this->show_annotations( $content );
+		if ( in_the_loop() && is_main_query() ){
 
-		return $content;
+			$content = $this->print_annotation_form( $content );
+			
+			$content = $this->show_annotations( $content );
+
+			return $content;
+		} else {
+			return $content;
+		}
 
 	}
 
@@ -251,7 +257,7 @@ class Margin_Notes {
 		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
 		
 		if ( ! wp_verify_nonce($req['delete-annotation'], 'delete-annotation') ){
-			
+			print_r('nonce');
 			return;
 		}
 		//$req = isset($_POST) ? $_POST : $_GET;
@@ -875,7 +881,8 @@ class Margin_Notes {
 		$nonce 			= wp_create_nonce( 'populate_annotations' );
 		$post_obj 		= get_post();
 		$post 			= $post_obj->post_name;
-		$content 		= wptexturize( get_the_content( null, false, $post_obj ) );
+		$content 		= apply_filters( 'the_content', get_the_content( null, false, $post_obj ) );
+		//$content 		= get_the_content( null, false, $post_obj ) ;
 		$annotations 	= get_option( 'annotations' )[ $post ];
 		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
 

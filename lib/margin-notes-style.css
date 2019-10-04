@@ -259,14 +259,14 @@ button.delete-annotation:hover{
 }
 
 
-@media screen and (max-width: 400px){
+@media screen and ( max-width: 400px ){
 	.margin-notes-wrapper{
-		width:100%;
+		width:100%!important;
 		right:0;
 	}
 
 
 	.margin-notes-form{
-		width:100%;
+		width:100%!important;
 	}
 }
