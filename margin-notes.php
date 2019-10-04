@@ -34,7 +34,7 @@ class Margin_Notes {
 	private function __construct() {
 
 		//front-end
-		add_filter( 'the_content' , array( $this, 'filter_content') );
+		add_filter( 'the_content' , array( $this, 'filter_content'), 10000 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'load_front_end'));
 		
 		//back-end
@@ -87,16 +87,21 @@ class Margin_Notes {
 
 	public function filter_content( $content ){
 
-		$content = $this->print_annotation_form( $content );
+		if ( in_the_loop() && is_main_query() ){
 		
-		$content = $this->show_annotations( $content );
+			$content = $this->print_annotation_form( $content );
+			
+			$content = $this->show_annotations( $content );
 
-		return $content;
+			return $content;
+		} else {
+			
+			return $content;
+		}
 
 	}
 
 	public function show_annotations( $content ) {
-
 		$site_annotations = get_option( 'annotations ');
 		$html_string = get_option( 'margin_notes_html_string' );
 		$user = wp_get_current_user()->ID;
@@ -202,7 +207,7 @@ class Margin_Notes {
 
 			} else {
 				
-			print_r($source);
+			
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d">%s</span>', 
 					esc_attr( $current['id'] ),
@@ -255,7 +260,6 @@ class Margin_Notes {
 		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
 		
 		if ( ! wp_verify_nonce($req['delete-annotation'], 'delete-annotation') ){
-			print_r('nonce fail');
 			return;
 		}
 		//$req = isset($_POST) ? $_POST : $_GET;
@@ -816,16 +820,16 @@ class Margin_Notes {
 
 		$delete_style = "
 			.mn-delete-annotation{
-				color:$primary;
+				color:{$primary};
 			}
 		";
 
 		//position form just off page on user's choice of left or right
 		$form_wrap_style = "
-			#margin-notes-wrapper{
-				width:$width;
-				$which_margin:$form_wrapper_offset;
-			}
+			#margin-notes-wrapper{" .
+				/*width:$width;
+				$which_margin:$form_wrapper_offset;*/
+			"}
 		";
 
 		$form_style = "
@@ -898,7 +902,10 @@ class Margin_Notes {
 		$nonce 			= wp_create_nonce( 'populate_annotations' );
 		$post_obj 		= get_post();
 		$post 			= $post_obj->post_name;
-		$content 		= wptexturize( get_the_content( null, false, $post_obj ) );
+		
+		//$content 		= wptexturize( get_the_content( null, false, $post_obj ) );
+
+		$content      	= apply_filters( 'the_content', get_the_content( null, false, $post_obj ) );
 		$user 			= wp_get_current_user()->ID;
 		$annotations 	= get_option( 'annotations' )[ $user ][ $post ];
 		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
