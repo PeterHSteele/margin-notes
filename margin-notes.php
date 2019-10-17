@@ -254,25 +254,31 @@ class Margin_Notes {
  	
 		wp_die();
 	}
-//
+
+	/**
+	* Handles a request to delete a single annotation. 
+	*
+	*
+	*/
+
 	public function delete_annotation(){
 
 		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
 		
-		if ( ! wp_verify_nonce($req['delete-annotation'], 'delete-annotation') ){
+		if ( ! wp_verify_nonce( $req['delete-annotation'], 'delete-annotation') ){
 			return;
 		}
-		//$req = isset($_POST) ? $_POST : $_GET;
 
 		$id = $req['id-to-delete'];
 	
 		$post  = $req['post'];
-		//print_r($post);
+		
 		$user = wp_get_current_user()->ID;
 		$annotations = get_option('annotations');
 
-		array_splice( $annotations[$user][$post], $id, 1);
-
+		if ( current_user_can('annotate') ){
+			array_splice( $annotations[$user][$post], $id, 1);
+		}
 		update_option( 'annotations', $annotations );
 		update_option( 'margin_notes_html_string', '');
 
@@ -280,9 +286,14 @@ class Margin_Notes {
 
 		wp_redirect( $url );
 
-		//wp_die();
 	}
 
+	/**
+	* Prints the form with which users can submit new annotations
+	*	
+	* @since 1.0.0
+	* @param string 	$content 	the post/page content.
+	*/
 	
 	public function print_annotation_form( $content ){
 
@@ -296,7 +307,7 @@ class Margin_Notes {
 		} 
 
 
-		include 'lib/check_icon.php';
+		include_once 'lib/check_icon.php';
 
 		$settings = get_option( 'margin_notes_display_options' );
 
@@ -350,30 +361,30 @@ class Margin_Notes {
 
 	}
 
+	/**
+	* Add custom 'annotate' capability to subscriber and administrator roles
+	* 
+	* @since 1.0.0
+	*/
+
 	public static function add_reader_role(){
-
-		add_role(
-			'reader',
-			'Reader',
-			array('read'=>true)
-		);
-
-		$administrator = get_role('administrator');
-
-		$administrator->add_cap('annotate');
-
-		$reader = get_role('reader');
-
-		$reader->add_cap('annotate');
-
+		foreach( [ 'subscriber', 'administrator' ] as $role ) {
+			$role = get_role( $role );
+			$role->add_cap( $role, 'annotate', true );
+		}
 	}
 
+	/**
+	* Remove custom 'annotate' capability to subscriber and administrator roles
+	* 
+	* @since 1.0.0
+	*/
+
 	public static function remove_reader_role(){
-
-		if ( get_role( 'reader' ) ){
-			remove_role( 'reader' );
+		foreach( [ 'subscriber', 'administrator' ] as $role ) {
+			$role = get_role( $role );
+			$role->remove_cap( $role, 'annotate' );
 		}
-
 	}
 
 	public function settings_parameters() {
