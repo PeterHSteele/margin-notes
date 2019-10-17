@@ -1,8 +1,10 @@
 <?php
 /*
  *Plugin Name: Margin Notes
+ *Plugin URI: https://github.com/peterhsteele/margin-notes
  *Description: Allows subscribers to annotate articles on your site
  *Author:Peter Steele
+ *Author URI: https://github.com/peterhsteele
  *Version:1.0.0
  *License:GPL2
  *License URI:https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
@@ -27,8 +29,9 @@ register_activation_hook( __FILE__ , array( 'Margin_Notes', 'on_activation' ) );
 register_deactivation_hook( __FILE__ , array( 'Margin_Notes', 'on_deactivation' ) );
 register_uninstall_hook(__FILE__ , array( 'Margin_Notes', 'on_uninstall' ) );
 
+if (! class_exists('Maring_Notes') ){
 class Margin_Notes {
-
+	//property to hold singleton instance
 	static $instance = false;
 
 	private function __construct() {
@@ -48,6 +51,15 @@ class Margin_Notes {
 
 	}
 
+	/**
+	* Creates an instance of the class, or returns the instance if 
+	* it already exists.
+	*
+	* @since 1.0.0
+	*
+	*/
+
+
 	public function get_instance(){
 		
 		if (!self::$instance){
@@ -56,6 +68,13 @@ class Margin_Notes {
 		
 		return self::$instance;
 	}
+
+	/**
+	* executes activation tasks, including creating two options and adding 
+	* the annotation capability to subscriber and admin roles
+	*
+	* @since 1.0.0
+	*/
 
 	public static function on_activation(){
 
@@ -67,10 +86,16 @@ class Margin_Notes {
 		add_option( "annotations" , array() );
 
 
-		self::add_reader_role();
+		self::add_annotation_cap();
 
 		//self::setup_admin_settings();
 	}
+
+	/**
+	* executes deactivation tasks
+	*
+	* @since 1.0.0
+	*/
 
 	public static function on_deactivation(){
 
@@ -78,12 +103,28 @@ class Margin_Notes {
 			return;
 		}
 
-		self::remove_reader_role();
+		self::remove_annotation_cap();
 	}
+
+	/**
+	* Runs on uninstall - cleans up wp_options.
+	*
+	* @since 1.0.0 
+	*/
 
 	public static function on_uninstall(){
 		delete_option( 'annotations' );
+		delete_option( 'margin_notes_html_string' );
 	}
+
+	/**
+	* Runs content through the two main filtering functions:
+	* $this -> print_annotation_form
+	* $this -> show annotations
+	*
+	* @since 1.0.0
+	* @param string 	$content  	content to filter
+	*/
 
 	public function filter_content( $content ){
 
@@ -100,6 +141,21 @@ class Margin_Notes {
 		}
 
 	}
+
+	/**
+	* Puts together html for both the tooltip and margin annotations displays
+	*
+	* The general order of operations is:
+	* 	* retrieve the annotations from the database, 
+	* 	* order them according to when they appear in the content,
+	*   * put together a delete link based on the annotation's id
+	*	* wrap the annotation's source text in a <span> for styling 
+	*	* create html for the tooltip (tooltip display) 
+	* 	* create a html string of <div> annotations to be ajaxed to front end once page is loaded (margin display)
+	*
+	* @since 1.0.0
+	* @param string 	$content 	html for page/post
+	*/
 
 	public function show_annotations( $content ) {
 		$site_annotations = get_option( 'annotations ');
@@ -206,8 +262,7 @@ class Margin_Notes {
 				); 
 
 			} else {
-				
-			
+
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d">%s</span>', 
 					esc_attr( $current['id'] ),
@@ -237,6 +292,12 @@ class Margin_Notes {
 
 	}
 
+	/**
+	* Handles ajax request from front end for annotations to display.
+	*
+	* @since 1.0.0
+	*/
+
 	public function handle_annotations(){
 		check_ajax_referer('populate_annotations' , 'security' );
 
@@ -258,15 +319,18 @@ class Margin_Notes {
 	/**
 	* Handles a request to delete a single annotation. 
 	*
+	* Verifies the nonce, gets the user object, and makes sure they have the 
+	* 'annotate' capability. If so, deletes the annotation specified in request.
 	*
+	* @since 1.0.0
 	*/
 
 	public function delete_annotation(){
 
 		$req = isset( $_GET['delete-annotation'] ) ? $_GET : $_POST;
 		
-		if ( ! wp_verify_nonce( $req['delete-annotation'], 'delete-annotation') ){
-			return;
+		if ( ! wp_verify_nonce( $req['delete-annotation'], 'delete-annotation') || ! current_user_can( 'annotate' ) ){
+			wp_die();
 		}
 
 		$id = $req['id-to-delete'];
@@ -276,9 +340,8 @@ class Margin_Notes {
 		$user = wp_get_current_user()->ID;
 		$annotations = get_option('annotations');
 
-		if ( current_user_can('annotate') ){
-			array_splice( $annotations[$user][$post], $id, 1);
-		}
+		array_splice( $annotations[$user][$post], $id, 1);
+		
 		update_option( 'annotations', $annotations );
 		update_option( 'margin_notes_html_string', '');
 
@@ -367,7 +430,7 @@ class Margin_Notes {
 	* @since 1.0.0
 	*/
 
-	public static function add_reader_role(){
+	public static function add_annotation_cap(){
 		foreach( [ 'subscriber', 'administrator' ] as $role ) {
 			$role = get_role( $role );
 			$role->add_cap( $role, 'annotate', true );
@@ -380,12 +443,18 @@ class Margin_Notes {
 	* @since 1.0.0
 	*/
 
-	public static function remove_reader_role(){
+	public static function remove_annotation_cap(){
 		foreach( [ 'subscriber', 'administrator' ] as $role ) {
 			$role = get_role( $role );
 			$role->remove_cap( $role, 'annotate' );
 		}
 	}
+
+	/**
+	* gets attributes and strings to populate the margin notes settings section in Settings -> Discussion
+	*
+	* @since 1.0.0
+	*/
 
 	public function settings_parameters() {
 
@@ -503,9 +572,23 @@ class Margin_Notes {
 
 	}
 
+	/**
+	* Wraps helper text in settings in a <p>
+	*
+	* @since 1.0.0
+	*/
+
 	public function get_description( $text ){
 		return '<p>'.$text.'</p>';
 	}
+
+	/**
+	* Renders a text input for the margin notes settings section
+	*
+	* @since 1.0.0
+	* @param array 		$args 	an array of attributes (name, value, id) for the input
+	*							Note: these values are hard-coded so they aren't escaped
+	*/
 
 	public function text_input( $args ) {
 		$setting = $args['setting'];
@@ -520,6 +603,15 @@ class Margin_Notes {
 		echo $html;
 	}
 
+	/**
+	* Renders a radio group for the margin notes settings section.
+	*
+	*
+	* @since 1.0.0
+	* @param array 		$args 	an array of attributes (name, value, id) for the input
+	*							Note: these values are hard-coded so they aren't escaped
+	*/
+
 	public function radio_group( $args ){
 		[
 			'setting' => $setting,
@@ -527,12 +619,7 @@ class Margin_Notes {
 			'description' => $description,
 			'values' => $values,
 		] = $args;
-		/*$setting = $args['setting'];
-		$name=$args['name'];
-		$description = $args['description'];
-		$values = $args['values'];
-		$display = $args['display'];*/
-
+		
 		$html = '';
 		$value = isset( $setting ) ? $setting : '' ;
 
@@ -547,6 +634,14 @@ class Margin_Notes {
 
 		echo $html;
 	}
+
+	/**
+	* Renders a checkbox for the margin-notes settings section 
+	*
+	* @since 1.0.0
+	* @param array 		$args 	an array of attributes (name, value, id) for the input
+	*							Note: these values are hard-coded so they aren't escaped
+	*/
 
 	public function checkbox ( $args ){
 		$setting = $args['setting'];
@@ -565,51 +660,34 @@ class Margin_Notes {
 		echo $html;
 	}
 
-	public function replace_quotes( $str ){
-
-		return str_replace(
-			array(
-				'&rsquo;',
-				'&lsquo;',
-				'&ldquo;',
-				'&rdquo;',
-			),array(
-				'&#8217;',
-				'&#8216;',
-				'&#8220;',
-				'&#8221;'
-			), 
-			htmlentities( sanitize_text_field( $str ) )
-		);
-
-	}
+	/**
+	* Registers margin notes settings and prints html for settings fields
+	*
+	* @since 1.0.0
+	*/
 
 	public function setup_admin_settings (){
+		
+		register_setting(
+			'discussion',
+			'margin_notes_display_options',
+			array(
+				'type' => 'array',
+				'description' => 'display options for margin notes'
+			)
+		);
 
-		//if ( false === get_option('margin_notes_display_options') ){
-
-			register_setting(
-				'discussion',
-				'margin_notes_display_options',
-				array(
-					'type' => 'array',
-					'description' => 'display options for margin notes'
-				)
-			);
-
-		//}
+		
 
 		$settings = get_option( 'margin_notes_display_options' );
 		$display_type = $settings['display_type'];
 
 		['sections' => $sections, 'fields' => $fields ] = $this->settings_parameters();
-		/*
-		$params = $this->settings_parameters();
-		$sections = $params['sections'];
-		$fields = $params['fields'];
-		*/
-		function echo_color_section_instructions(){
-			echo Margin_Notes::get_description( __( 'You can specify as many as four theme colors. Any color format accepted.', 'margin-notes') );
+		
+		if ( ! function_exists( 'echo_color_section_instructions' ) ){
+			function echo_color_section_instructions(){
+				echo Margin_Notes::get_description( __( 'You can specify as many as four theme colors. Any color format accepted.', 'margin-notes') );
+			}
 		}
 
 		foreach ( $sections as $section => $args ) {
@@ -628,9 +706,6 @@ class Margin_Notes {
 				}
 			}
 
-
-			//print_r($field['name']);
-
 			add_settings_field( 
 				'margin_notes_'.$field['name'],
 				$field['title'],
@@ -645,11 +720,14 @@ class Margin_Notes {
 					'class' => $field['name'].' '.$display
 				)
 			);
-
 		}
-
-		
 	}
+
+	/**
+	* Enqueu styles and scripts for admin section
+	*
+	* @since 1.0.0
+	*/
 
 	public function load_back_end(){
 
@@ -661,9 +739,18 @@ class Margin_Notes {
 
 	}
 
+	/**
+	* Handles the POST request when the create annotation form is submitted
+	*
+	* checks the nonce, checks the user's 'annotate' capability, sanitizes the input and adds it to the database.
+	* If 'delete all' box is checked, wipes the current post clean.
+	*
+	* @since 1.0.0
+	*/
+
 	public function get_form_data(){
 		
-		if ( ! wp_verify_nonce( $_POST['thoughts-on-article'], 'submit-annotation') ){
+		if ( ! wp_verify_nonce( $_POST['thoughts-on-article'], 'submit-annotation') || ! current_user_can('annotate' ) ){
 			return;
 		}
 
@@ -681,10 +768,8 @@ class Margin_Notes {
 
 		else if ( $_POST['annotation'] ) {
 
-			$text = $this->replace_quotes( $_POST['highlight'] );
+			$text = wp_texturize( $_POST['highlight'] );
 			$annotation = sanitize_textarea_field( $_POST['annotation'] );
-			
-			//print_r($annotations);
 			
 			if ( ! $annotations[$user] ){
 				$annotations[$user]=array(
@@ -696,7 +781,6 @@ class Margin_Notes {
 						   )
 				);
 
-				//print_r($annotations);
 			} elseif ( ! $annotations[$user][$post] ){
 
 				$annotations[$user][$post]=array(
@@ -715,64 +799,25 @@ class Margin_Notes {
 				function get_source($arr){
 					return $arr['source'];
 				}
-				/*
-				$sources = array_map( 'get_source', $annotations[$user][$post] );
-
-				$last_words = array_map( 'find_last', $sources );
-				$highlight_words = explode( ' ', $text );
-				/*print_r( $highlight_words );
-				print_r( $last_words );
-				foreach ( $last_words as $word ){
-					$key = array_search( $word , $highlight_words );
-			
-					if ( $key > -1 ){
-						print_r('key '.$key);
-						$key++;
-						if ( intval( $highlight_words[$key] > 0 ) ){
-							array_splice( $highlight_words, $key, 1);
-						}
-					}
-				}
-				
-				$text = implode( ' ', $highlight_words );	
-					/*$match = strpos( $text, $word );
-					if ( $match ){
-						$length = strlen($word) 
-						if ( intval() )
-					}*
-				}
-
-				/*function filter_footnote_digits( $str ){
-					return intval($str) > 0 && intval($str)
-				}
-
-				
-				array_filter()*/
 
 				$id = sizeof( $annotations[$user][$post] );
 				$annotations[$user][$post][$id] = array( 
 					'source' => $text, 
 					'annotation' => $annotation 
 				);
-
-				//print_r($annotations[$user][$post]);
-
 			}
-
 			update_option( 'annotations' , $annotations );
-		
-			//print_r($annotations);
 		}
 		
-		//update_option( 'annotations' , array() );
-		//update_option( 'margin_notes_html_string', '' );
-		
 		$url = get_home_url() . '/index.php/' . $post;
-		
 		wp_redirect( $url );
-
-		
 	}
+
+	/**
+	* Creates the css for any plugin styles that depend on user settings
+	*
+	* @since 1.0.0
+	*/
 
 	public function build_inline_styles(){
 
@@ -787,8 +832,8 @@ class Margin_Notes {
 			'width_unit' => $width_unit,
 		] = get_option('margin_notes_display_options');
 
-		$width = $width_value . $width_unit;
-		$form_wrapper_offset = -1 * $width_value . $width_unit;
+		/*$width = $width_value . $width_unit;
+		$form_wrapper_offset = -1 * $width_value . $width_unit;*/
 
 
 		if ( $display_type === 'margins' ){
@@ -885,6 +930,13 @@ class Margin_Notes {
 		
 	}
 
+	/**
+	* Enqueues styles and scripts for plugin front end. Also localizes javascript file 
+	* with needed values
+	*
+	* @since 1.0.0
+	*/
+
 	public function load_front_end (){
 
 		$disableStyles = apply_filters( 'margin_notes_disable_styles', false );
@@ -938,21 +990,9 @@ class Margin_Notes {
 				'annotations' => $annotations,
 				'delete_url' => $delete_url
 			)
-
 		);
-		/*
-		wp_enqueue_script('ajax-script', plugins_url('/lib/annotation-ajax.js', __FILE__), array('jquery') );
-
-		
-
-		wp_localize_script( 'ajax-script' , 'ajax_obj' , array(
-				'ajaxURL' => admin_url('admin-ajax.php'),
-				'security' => $nonce,
-			)
-		);
-		*/
 	}
-
+}
 }
 
 $Margin_Notes = Margin_Notes::get_instance();
