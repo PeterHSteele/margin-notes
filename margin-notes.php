@@ -44,10 +44,10 @@ class Margin_Notes {
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_back_end' ) );
 		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
 		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );	
-		add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
+		//add_action( 'wp_ajax_nopriv_handle_annotations', array( $this, 'handle_annotations' ) );
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
-		
+		add_action( 'admin_head', array( $this, 'admin_style' ) );
 
 	}
 
@@ -678,6 +678,81 @@ class Margin_Notes {
 	}
 
 	/**
+	* Callback function to validate user input into the settings fields.
+	*
+	* Ensures colors are valid hexes and radio groups correspond to one of their allowed values
+	* 
+	* @since 1.0.0
+	* @param array 	$input 	the settings array
+	*/
+
+	public function sanitize_settings_fields( $input ){
+		
+		foreach ( ['primary_color', 'secondary_color', 'tertiary_color', 'note_background_color'] as $field ){
+			$input[$field] = $this->sanitize_color_field( $input[$field] );
+		}
+
+		$radios = array(
+			array( 'container_type', 'id', 'class'  ),
+			array( 'display_type', 'margins', 'tooltips' ),
+			array( 'which_margin', 'left', 'right' )
+		);
+
+		foreach ( $radios as $field ){
+			$input[$field[0]] = $this->sanitize_radio( $input[$field[0]], $field[1], $field[2] );
+		}
+
+		$input['container'] 	 = sanitize_text_field( $input['container'] );
+		$input['width_value'] 	 = intval( $input['width_value'] );
+		
+		$width_units = array( 'px', '%',  'px');
+		if ( ! in_array( $input['width_unit'], $width_units ) ){
+			$input['width_unit'] = 'px';
+		}
+		
+		if ( ! is_bool( $input['hide_notes'] ) ){
+			$input['hide_notes'] = false;
+		}
+
+		return $input;
+	}
+
+	/**
+	* sanitizes a radio input by insuring the returned value is one of the two provided.
+	*
+	* @since 1.0.0
+	*
+	*/
+
+	public function sanitize_radio( $input, $val1, $val2 ) {
+		return $input == $val1 ? $val1 : $val2;
+	}
+
+	/**
+	* Sanitizes user input from color fields in the the settings section.
+	*
+	* @since 1.0.0
+	*/
+
+	private function sanitize_color_field( $color ){
+
+		if ( strlen( $color ) > 7 ){
+			$color = substr( $color, 0, 7 );
+		}
+
+		$first = substr( $color, 0, 1);
+		$color = substr( $color, 1, 6 );
+		
+		if ( $first != '#' || preg_match( '/[a-zA-Z\d]+/', $color ) === false ){
+			$color = '';
+		} else {
+			$color = '#' . $color;
+		}
+		
+		return $color;
+	}
+
+	/**
 	* Registers margin notes settings and prints html for settings fields
 	*
 	* @since 1.0.0
@@ -690,7 +765,8 @@ class Margin_Notes {
 			'margin_notes_display_options',
 			array(
 				'type' => 'array',
-				'description' => 'display options for margin notes'
+				'description' => 'display options for margin notes',
+				'sanitize_callback' => array( $this, 'sanitize_settings_fields' )
 			)
 		);
 
@@ -703,7 +779,7 @@ class Margin_Notes {
 		
 		if ( ! function_exists( 'echo_color_section_instructions' ) ){
 			function echo_color_section_instructions(){
-				echo Margin_Notes::get_description( __( 'You can specify as many as four theme colors. Any color format accepted.', 'margin-notes') );
+				echo Margin_Notes::get_description( __( 'You can specify as many as four theme colors. Please use hex format (ie., "#123456" or "#BBB").', 'margin-notes') );
 			}
 		}
 
@@ -1027,12 +1103,33 @@ class Margin_Notes {
 
 	public function load_back_end(){
 
+		/*
 		wp_register_style( 'admin-style' ,plugins_url( '/lib/margin-notes-admin-style.css', __FILE__ ) );
 		wp_enqueue_style( 'admin-style' );
+		*/
+
 
 		wp_register_script( 'admin-script', plugins_url( '/lib/margin-notes-admin.js', __FILE__ ), array('jquery'), '1.0.0' );
 		wp_enqueue_script( 'admin-script' );
 
+	}
+
+	/**
+	* adds minor css for admin area using admin_head
+	*
+	* @since 1.0.0
+	*
+	*/
+
+	public function admin_style(){
+		print_r('adminstyle');
+		?>
+			<style>
+				.no-display{
+					display:none;
+				}
+			</style>
+		<?php
 	}
 
 }
