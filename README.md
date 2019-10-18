@@ -1,4 +1,4 @@
-# Plugin Name
+# Margin Notes
 **Contributors**: peterste
 
 **Tags**: Annotation  
