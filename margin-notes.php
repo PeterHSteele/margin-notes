@@ -1,26 +1,28 @@
 <?php
-/*
- *Plugin Name: Margin Notes
- *Plugin URI: https://github.com/peterhsteele/margin-notes
- *Description: Allows subscribers to annotate articles on your site
- *Author:Peter Steele
- *Author URI: https://github.com/peterhsteele
- *Version:1.0.0
- *License:GPL2
- *License URI:https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
-
-Margin Notes is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-any later version.
- 
-Margin Notes is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License (https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) 
-for more details.
-
-
+/**
+ * Plugin Name: Margin Notes
+ * Plugin URI: https://github.com/peterhsteele/margin-notes
+ * Description: Allows subscribers to annotate articles on your site
+ * Author:Peter Steele
+ * Author URI: https://github.com/peterhsteele
+ * Version:1.0.0
+ * License:           GPL-2.0+
+ * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
+ * Text Domain:       margin-notes
+ * Domain Path:       /languages
+ *
+ * Margin Notes is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * any later version.
+ * 
+ * Margin Notes is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License (https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) 
+ * for more details.
+ *
+ *
 */
 
 defined('ABSPATH')||exit;
@@ -114,6 +116,7 @@ class Margin_Notes {
 	public static function on_uninstall(){
 		delete_option( 'annotations' );
 		delete_option( 'margin_notes_html_string' );
+		delete_option( 'margin_notes_display_options ');
 	}
 
 	/**
@@ -142,22 +145,22 @@ class Margin_Notes {
 	*/
 
 	public static function add_annotation_cap(){
-		foreach( [ 'subscriber', 'administrator' ] as $role ) {
-			$role = get_role( $role );
-			$role->add_cap( $role, 'annotate', true );
+		foreach( [ 'subscriber', 'administrator' ] as $role_name ) {
+			$role = get_role( $role_name );
+			$role->add_cap( $role_name, 'annotate', true );
 		}
 	}
 
 	/**
-	* Remove custom 'annotate' capability to subscriber and administrator roles
+	* Remove custom 'annotate' capability from subscriber and administrator roles
 	* 
 	* @since 1.0.0
 	*/
 
 	public static function remove_annotation_cap(){
-		foreach( [ 'subscriber', 'administrator' ] as $role ) {
-			$role = get_role( $role );
-			$role->remove_cap( $role, 'annotate' );
+		foreach( [ 'subscriber', 'administrator' ] as $role_name ) {
+			$role = get_role( $role_name );
+			$role->remove_cap( $role_name, 'annotate' );
 		}
 	}
 
@@ -669,7 +672,6 @@ class Margin_Notes {
 
 		$html = '';
 		$value = isset( $setting ) ? $setting : '' ;
-		print_r($value);
 
 		$html .= $this->get_description( $description );
 		$html .= '<input type="checkbox" value="'.$val.'" name="margin_notes_display_options['.$name.']" id="margin_notes_'.$name.'_'.$value.'" '.checked($value, $val, false). ' >';
@@ -1103,12 +1105,6 @@ class Margin_Notes {
 
 	public function load_back_end(){
 
-		/*
-		wp_register_style( 'admin-style' ,plugins_url( '/lib/margin-notes-admin-style.css', __FILE__ ) );
-		wp_enqueue_style( 'admin-style' );
-		*/
-
-
 		wp_register_script( 'admin-script', plugins_url( '/lib/margin-notes-admin.js', __FILE__ ), array('jquery'), '1.0.0' );
 		wp_enqueue_script( 'admin-script' );
 
@@ -1122,7 +1118,6 @@ class Margin_Notes {
 	*/
 
 	public function admin_style(){
-		print_r('adminstyle');
 		?>
 			<style>
 				.no-display{
