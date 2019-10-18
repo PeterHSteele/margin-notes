@@ -29,7 +29,7 @@ register_activation_hook( __FILE__ , array( 'Margin_Notes', 'on_activation' ) );
 register_deactivation_hook( __FILE__ , array( 'Margin_Notes', 'on_deactivation' ) );
 register_uninstall_hook(__FILE__ , array( 'Margin_Notes', 'on_uninstall' ) );
 
-if (! class_exists('Maring_Notes') ){
+if (! class_exists('Margin_Notes') ){
 class Margin_Notes {
 	//property to hold singleton instance
 	static $instance = false;
@@ -58,7 +58,6 @@ class Margin_Notes {
 	* @since 1.0.0
 	*
 	*/
-
 
 	public function get_instance(){
 		
@@ -118,6 +117,16 @@ class Margin_Notes {
 	}
 
 	/**
+	* load plugin text domain
+	*
+	* @since 1.0.0
+	*/
+
+	private function load_textdomain(){
+		load_plugin_textdomain( 'margin-notes', false, plugins_url( 'languages' , __FILE__ ) );
+	}
+
+	/**
 	* Runs content through the two main filtering functions:
 	* $this -> print_annotation_form
 	* $this -> show annotations
@@ -125,6 +134,32 @@ class Margin_Notes {
 	* @since 1.0.0
 	* @param string 	$content  	content to filter
 	*/
+
+	/**
+	* Add custom 'annotate' capability to subscriber and administrator roles
+	* 
+	* @since 1.0.0
+	*/
+
+	public static function add_annotation_cap(){
+		foreach( [ 'subscriber', 'administrator' ] as $role ) {
+			$role = get_role( $role );
+			$role->add_cap( $role, 'annotate', true );
+		}
+	}
+
+	/**
+	* Remove custom 'annotate' capability to subscriber and administrator roles
+	* 
+	* @since 1.0.0
+	*/
+
+	public static function remove_annotation_cap(){
+		foreach( [ 'subscriber', 'administrator' ] as $role ) {
+			$role = get_role( $role );
+			$role->remove_cap( $role, 'annotate' );
+		}
+	}
 
 	public function filter_content( $content ){
 
@@ -220,7 +255,7 @@ class Margin_Notes {
 			$delete_url_query_string = sprintf('&action=delete_annotation&id-to-delete=%s&post=%s', $current['id'], $post ); 
 			$delete_url_base = wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation' , 'delete-annotation' );
 			$delete_url = $delete_url_base . $delete_url_query_string;
-			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), 'delete' );
+			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), __( 'delete', 'margin-notes') );
 						
 			if ( ! $settings['hide_notes'] && $margin_display ){
 					
@@ -284,7 +319,7 @@ class Margin_Notes {
 		} else {
 			$content .= '<div id="annotation-tooltip" class="annotation-tooltip no-display"><div class="spacer"><div class="tip-content">';
 			$content .=	'<p class="annotation-body"></p>';
-			$content .= sprintf( '<a class="%s" href="#">%s</a>', 'mn-delete-annotation', 'delete' );
+			$content .= sprintf( '<a class="%s" href="#">%s</a>', 'mn-delete-annotation', __( 'delete' , 'margin-notes' ) );
 			$content .= '</div><div id="mn-tri" class="tri"></div></div></div>';
 		}
 		
@@ -383,7 +418,7 @@ class Margin_Notes {
 			</circle>
 			<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="'.$settings['secondary_color'].'" stroke-width="5"  stroke-linecap="round"/>
 			<line x1="15" y1="25" x2="35" y2="25" stroke="'.$settings['secondary_color'].'" stroke-width="5" stroke-linecap="round"/>
-			<title>'.__('Margin Notes: Add Annotation').'</title>
+			<title>'.__( 'Margin Notes: Add Annotation', 'margin-notes' ).'</title>
 		</svg>
 		';
 
@@ -402,13 +437,16 @@ class Margin_Notes {
 					esc_url( admin_url('admin-post.php') ) 
 				);
 		$html .= sprintf( '<input type="text" name="post-name" id="post-name" readonly="readonly" value="%s">', esc_attr(get_post()->post_name) );
-		$html .= '<label>'.__('Copy and paste source text for your annotation.');
+		$html .= '<label>'.__( 'Copy and paste source text for your annotation.', 'margin-notes' );
 		$html .= '<input name="highlight" id="highlight-input" type="text"></label>';
 		$html .= '<p id="highlight-error"></p>';
-		$html .= '<label>'.__('Create an annotation.');
-		$html .= '<textarea name="annotation" rows="10" id="annotation-input" placeholder="your thoughts ... " type="text">';
+		$html .= '<label>'.__( 'Create an annotation.', 'margin-notes' );
+		$html .= sprintf( 
+					'<textarea name="annotation" rows="10" id="annotation-input" placeholder="%s ..." type="text">',
+					__( 'your thoughts' , 'margin-notes' )
+				);
 		$html .= '</textarea></label>';
-		$html .= '<label>'.__('Delete all annotations on this page.');
+		$html .= '<label>'.__('Delete all annotations on this page.', 'margin-notes' );
 		$html .= '<input type="checkbox" id="deleteAll" value="delete" name="delete">';
 		$html .= sprintf( 
 					/*'<div class="surrogate-checkbox colored-border">*/'%s',/*</div>',*/
@@ -417,38 +455,17 @@ class Margin_Notes {
 		$html .= '</label>';
 		$html .= '<input type="hidden" name="action" value="annotation">';
 		$html .= wp_nonce_field('submit-annotation','thoughts-on-article');
-		$html .= '<input type="submit" value="submit" id="margin-notes-submit" class="margin-notes-button colored-border">';
+		$html .= sprintf( 
+			'<input type="submit" value="%s" id="margin-notes-submit" class="margin-notes-button colored-border">', 
+			__( 'Submit' , 'margin-notes' )
+			);
 		$html .= '</form></div>';
 
 		return $content.$html;
 
 	}
 
-	/**
-	* Add custom 'annotate' capability to subscriber and administrator roles
-	* 
-	* @since 1.0.0
-	*/
-
-	public static function add_annotation_cap(){
-		foreach( [ 'subscriber', 'administrator' ] as $role ) {
-			$role = get_role( $role );
-			$role->add_cap( $role, 'annotate', true );
-		}
-	}
-
-	/**
-	* Remove custom 'annotate' capability to subscriber and administrator roles
-	* 
-	* @since 1.0.0
-	*/
-
-	public static function remove_annotation_cap(){
-		foreach( [ 'subscriber', 'administrator' ] as $role ) {
-			$role = get_role( $role );
-			$role->remove_cap( $role, 'annotate' );
-		}
-	}
+	
 
 	/**
 	* gets attributes and strings to populate the margin notes settings section in Settings -> Discussion
@@ -460,12 +477,12 @@ class Margin_Notes {
 
 		$sections = array(
 			'display_settings' => array(
-				'title' => 'Margin Notes Display Settings',
+				'title' => __( 'Margin Notes Display Settings', 'margin-notes' ),
 				'callback' => '__return_true',
 				'page' => 'discussion'
 			),
 			'color_settings' => array(
-				'title' => 'Margin Notes Color Settings',
+				'title' => __( 'Margin Notes Color Settings', 'margin-notes' ),
 				'callback'=> 'echo_color_section_instructions',
 				'page' => 'discussion'
 			)
@@ -474,35 +491,35 @@ class Margin_Notes {
 		$fields = array(
 			array(
 				'name' => 'primary_color',
-				'title' => 'Form Background Color',
+				'title' => __( 'Form Background Color', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'color_settings',
 				'desc' => __('Background color for "create new" form and accent color for notes. Defaults to black.', 'margin-notes'),
 			),
 			array(
 				'name' => 'secondary_color',
-				'title' => 'Form Text Color',
+				'title' => __( 'Form Text Color', 'margin-notes'),
 				'type' => 'text_input',
 				'section' => 'color_settings',
 				'desc' => __('Text color for "Create New" form. Defaults to white', 'margin-notes'),
 			),
 			array(
 				'name' => 'tertiary_color',
-				'title' => 'Annotation Text Color',
+				'title' => __( 'Annotation Text Color', 'margin-notes'),
 				'type' => 'text_input',
 				'section' => 'color_settings',
 				'desc' => __( 'Color for the text of the notes themselves. Defaults to black.', 'margin-notes')
 			),
 			array(
 				'name' => 'note_background_color',
-				'title' => 'Annotation Background Color',
+				'title' => __( 'Annotation Background Color', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'color_settings',
 				'desc' => __( 'Color for background of the notes. Defaults to white.', 'margin-notes')
 			),
 			array(
 				'name' => 'display_type',
-				'title' => 'Display Type',
+				'title' => __( 'Display Type', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
 				'desc' => __( 'Annotations can be displayed either as tooltips or as notes in the margins', 'margin-notes'),
@@ -510,14 +527,14 @@ class Margin_Notes {
 			),
 			array(
 				'name' => 'container',
-				'title' => 'Container',
+				'title' => __( 'Container', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'display_settings',
 				'desc' => __( 'An id or class name of an html element in your theme to be used as the container for the annotations.', 'margin-notes')
 			),
 			array(
 				'name' => 'container_type',
-				'title' => 'Container Attribute Type',
+				'title' => __( 'Container Attribute Type', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
 				'desc' => __( 'The name listed above is an:', 'margin-notes'),
@@ -525,14 +542,14 @@ class Margin_Notes {
 			),
 			array(
 				'name' => 'width_value',
-				'title' => 'Width Value',
+				'title' => __( 'Width Value', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'display_settings',
 				'desc' => __( 'Specify a width your annotations should take up on large screens.' , 'margin-notes')
 			),
 			array(
 				'name' => 'width_unit',
-				'title' => 'Width Unit',
+				'title' => __( 'Width Unit', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
 				'desc' => __( 'Specify a unit for the width of the annotations.', 'margin-notes'),
@@ -540,7 +557,7 @@ class Margin_Notes {
 			),
 			array(
 				'name' => 'which_margin',
-				'title' => 'Choose Margin',
+				'title' => __( 'Choose Margin', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
 				'desc' => __( 'The side of the page where annotations will appear and from which the form will slide out.', 'margin-notes'),
@@ -548,7 +565,7 @@ class Margin_Notes {
 			),
 			array(
 				'name' => 'hide_notes',
-				'title' => 'Hide Notes',
+				'title' => __( 'Hide Notes', 'margin-notes' ),
 				'type' => 'checkbox',
 				'section' => 'display_settings',
 				'desc' => __( 'Hide annotations on all pages that have them', 'margin-notes'),
@@ -573,7 +590,7 @@ class Margin_Notes {
 	}
 
 	/**
-	* Wraps helper text in settings in a <p>
+	* Wraps helper text for settings form in a <p>
 	*
 	* @since 1.0.0
 	*/
@@ -724,19 +741,28 @@ class Margin_Notes {
 	}
 
 	/**
-	* Enqueu styles and scripts for admin section
+	* converts any non texturized quotations in POST body
 	*
 	* @since 1.0.0
+	* @param string 	$str 	the haystack in which to find quotes
 	*/
 
-	public function load_back_end(){
+	public function replace_quotes( $str ){
 
-		wp_register_style( 'admin-style' ,plugins_url( '/lib/margin-notes-admin-style.css', __FILE__ ) );
-		wp_enqueue_style( 'admin-style' );
-
-		wp_register_script( 'admin-script', plugins_url( '/lib/margin-notes-admin.js', __FILE__ ), array('jquery'), '1.0.0' );
-		wp_enqueue_script( 'admin-script' );
-
+		return str_replace(
+			array(
+				'&rsquo;',
+				'&lsquo;',
+				'&ldquo;',
+				'&rdquo;',
+			),array(
+				'&#8217;',
+				'&#8216;',
+				'&#8220;',
+				'&#8221;'
+			), 
+			htmlentities( sanitize_text_field( $str ) )
+		);
 	}
 
 	/**
@@ -767,8 +793,8 @@ class Margin_Notes {
 		}
 
 		else if ( $_POST['annotation'] ) {
-
-			$text = wp_texturize( $_POST['highlight'] );
+			
+			$text = $this->replace_quotes( $_POST['highlight'] );
 			$annotation = sanitize_textarea_field( $_POST['annotation'] );
 			
 			if ( ! $annotations[$user] ){
@@ -992,6 +1018,23 @@ class Margin_Notes {
 			)
 		);
 	}
+
+	/**
+	* Enqueue styles and scripts for admin section
+	*
+	* @since 1.0.0
+	*/
+
+	public function load_back_end(){
+
+		wp_register_style( 'admin-style' ,plugins_url( '/lib/margin-notes-admin-style.css', __FILE__ ) );
+		wp_enqueue_style( 'admin-style' );
+
+		wp_register_script( 'admin-script', plugins_url( '/lib/margin-notes-admin.js', __FILE__ ), array('jquery'), '1.0.0' );
+		wp_enqueue_script( 'admin-script' );
+
+	}
+
 }
 }
 
