@@ -936,14 +936,14 @@ class Margin_Notes {
 			'width_unit' => $width_unit,
 		] = get_option('margin_notes_display_options');
 
-		/*$width = $width_value . $width_unit;
-		$form_wrapper_offset = -1 * $width_value . $width_unit;*/
+		$width = $width_value . $width_unit;
+		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
 
 		if ( $display_type === 'margins' ){
 			$annotation_style = "
 			.annotation{
-				border-left: 3px solid $primary;
+				border-left: 3px solid {$primary};
 				color: {$tertiary};
 				background: {$note_background};
 				float: {$which_margin};
@@ -954,9 +954,12 @@ class Margin_Notes {
 		} else{
 			$annotation_style = "
 			.annotation-tooltip div.tip-content{
-				border-left: 3px solid $primary;
-				color: {$tertiary};
+				border-left: 3px solid {$primary};
 				background: {$note_background};
+			}
+
+			.annotation-tooltip div.tip-content p{
+				color: {$tertiary};
 			}
 
 			.tri{
@@ -981,6 +984,10 @@ class Margin_Notes {
 		$delete_style = "
 			.mn-delete-annotation{
 				color:{$primary};
+			}
+
+			.mn-deleete-annotation:hover{
+				color:{$tertiary}
 			}
 		";
 
