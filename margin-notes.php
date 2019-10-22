@@ -293,7 +293,7 @@ class Margin_Notes {
 			if ( $margin_display ){
 				
 				$tag = sprintf( 
-					'<span class="mn-highlight annotation-%d" >%s <span class="sup">%d</span></span>', 
+					'<span class="mn-highlight annotation-%d" >%s<span class="sup">%d</span></span>', 
 					esc_attr( $current['id'] ), 
 					esc_html( $source ), 
 					$note_num
