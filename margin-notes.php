@@ -231,6 +231,7 @@ class Margin_Notes {
 			if ( isset( $annotations_by_index[$index] ) ){
 				while ( isset( $annotations_by_index[$index] ) ){
 					$index++;
+					$annotation['source'] = substr( $annotation['source'], 1);
 				}
 			}
 		
@@ -242,8 +243,15 @@ class Margin_Notes {
 		} 
 		
 		ksort( $annotations_by_index );
-		
 		//all sorted
+
+		/*
+		the function adds <spans> for the highlights one at a time at specific indexes,
+		and those indexes will change as length of $content string 
+		changes. $cumulative_tag_length variable is to keep track 
+		of how many characters we are adding. 
+		*/
+		$cumulative_tag_length = 0;
 			
 		$annotation_html = '';
 		$note_num = 0;
@@ -271,31 +279,35 @@ class Margin_Notes {
 				);
 				
 			}
+
+			
 			/*
 				if highlights overlap, only one tooltip should display at a time.
 				this section shortens the first highlight text so it ends immediately 
 				before the next begins - mouse never hovers over 2 highlights at once.
 				*/
-				$index = key($annotations_by_index);
+				$text_to_wrap = $source;
+				$index = key($annotations_by_index) + $cumulative_tag_length; 
 				next( $annotations_by_index );
-				$next_index = key( $annotations_by_index );
+				$next_index = key( $annotations_by_index ) ? key($annotations_by_index) + $cumulative_tag_length : null;
 				prev( $annotations_by_index );
-
+				
 				if ( $next_index ){
 					$diff = $next_index - $index;
 					$source_length = strlen( $source );
-
+					
 					if ( $source_length > $diff ){
-						$source = substr( $source, 0 , $diff );
+						$text_to_wrap =  substr( $source, 0 , $diff );
 					} 
-				}
-				
+				} 
+			
+			
 			if ( $margin_display ){
 				
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d" >%s<span class="sup">%d</span></span>', 
 					esc_attr( $current['id'] ), 
-					esc_html( $source ), 
+					esc_html( $text_to_wrap ), 
 					$note_num
 				); 
 
@@ -304,14 +316,24 @@ class Margin_Notes {
 				$tag = sprintf( 
 					'<span class="mn-highlight annotation-%d">%s</span>', 
 					esc_attr( $current['id'] ),
-					esc_html( $source )
+					esc_html( $text_to_wrap )
 					/*esc_html( stripslashes( $current['annotation'] ) ), 
 					$delete_button */
 				);
 			}
 
-			$source = '/'.$source.'/';
-			$content = preg_replace( $source, $tag, $content, 1);
+			//everything in content up unitl the new highlight <span>
+			$content_before = substr( $content, 0 , $index);
+			//the index at which text that will be wrapped in <span> ends
+			$ending_index = $index + strlen( $text_to_wrap );
+			//everything in content following end of the new highlight <span>
+			$content_after = substr( $content, $ending_index );
+			//add length of tag chararcters so they can be accounted for when locating next index
+			$cumulative_tag_length += strlen( $tag ) -  strlen( $text_to_wrap );
+			//insert the new <span> in place of old string.
+			$content = $content_before . $tag . $content_after;
+
+			//$content = preg_replace( $text_to_wrap, $tag, $content, 1);
 
 			next( $annotations_by_index );
 		
