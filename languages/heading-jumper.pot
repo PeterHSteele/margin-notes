@@ -1,0 +1,164 @@
+# Copyright (C) 2019 Peter Steele
+# This file is distributed under the same license as the Margin Notes plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Margin Notes 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/margin-notes-public\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2019-10-18T15:26:04+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.3.0\n"
+"X-Domain: margin-notes\n"
+
+#. Plugin Name of the plugin
+msgid "Margin Notes"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://github.com/peterhsteele/margin-notes"
+msgstr ""
+
+#. Description of the plugin
+msgid "Allows subscribers to annotate articles on your site"
+msgstr ""
+
+#. Author of the plugin
+msgid "Peter Steele"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://github.com/peterhsteele"
+msgstr ""
+
+#: margin-notes.php:261
+#: margin-notes.php:325
+msgid "delete"
+msgstr ""
+
+#: margin-notes.php:424
+msgid "Margin Notes: Add Annotation"
+msgstr ""
+
+#: margin-notes.php:443
+msgid "Copy and paste source text for your annotation."
+msgstr ""
+
+#: margin-notes.php:446
+msgid "Create an annotation."
+msgstr ""
+
+#: margin-notes.php:449
+msgid "your thoughts"
+msgstr ""
+
+#: margin-notes.php:452
+msgid "Delete all annotations on this page."
+msgstr ""
+
+#: margin-notes.php:463
+msgid "Submit"
+msgstr ""
+
+#: margin-notes.php:483
+msgid "Margin Notes Display Settings"
+msgstr ""
+
+#: margin-notes.php:488
+msgid "Margin Notes Color Settings"
+msgstr ""
+
+#: margin-notes.php:497
+msgid "Form Background Color"
+msgstr ""
+
+#: margin-notes.php:500
+msgid "Background color for \"create new\" form and accent color for notes. Defaults to black."
+msgstr ""
+
+#: margin-notes.php:504
+msgid "Form Text Color"
+msgstr ""
+
+#: margin-notes.php:507
+msgid "Text color for \"Create New\" form. Defaults to white"
+msgstr ""
+
+#: margin-notes.php:511
+msgid "Annotation Text Color"
+msgstr ""
+
+#: margin-notes.php:514
+msgid "Color for the text of the notes themselves. Defaults to black."
+msgstr ""
+
+#: margin-notes.php:518
+msgid "Annotation Background Color"
+msgstr ""
+
+#: margin-notes.php:521
+msgid "Color for background of the notes. Defaults to white."
+msgstr ""
+
+#: margin-notes.php:525
+msgid "Display Type"
+msgstr ""
+
+#: margin-notes.php:528
+msgid "Annotations can be displayed either as tooltips or as notes in the margins"
+msgstr ""
+
+#: margin-notes.php:533
+msgid "Container"
+msgstr ""
+
+#: margin-notes.php:536
+msgid "An id or class name of an html element in your theme to be used as the container for the annotations."
+msgstr ""
+
+#: margin-notes.php:540
+msgid "Container Attribute Type"
+msgstr ""
+
+#: margin-notes.php:543
+msgid "The name listed above is an:"
+msgstr ""
+
+#: margin-notes.php:548
+msgid "Width Value"
+msgstr ""
+
+#: margin-notes.php:551
+msgid "Specify a width your annotations should take up on large screens."
+msgstr ""
+
+#: margin-notes.php:555
+msgid "Width Unit"
+msgstr ""
+
+#: margin-notes.php:558
+msgid "Specify a unit for the width of the annotations."
+msgstr ""
+
+#: margin-notes.php:563
+msgid "Choose Margin"
+msgstr ""
+
+#: margin-notes.php:566
+msgid "The side of the page where annotations will appear and from which the form will slide out."
+msgstr ""
+
+#: margin-notes.php:571
+msgid "Hide Notes"
+msgstr ""
+
+#: margin-notes.php:574
+msgid "Hide annotations on all pages that have them"
+msgstr ""
+
+#: margin-notes.php:784
+msgid "You can specify as many as four theme colors. Please use hex format (ie., \"#123456\" or \"#BBB\")."
+msgstr ""
