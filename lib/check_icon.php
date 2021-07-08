@@ -15,5 +15,3 @@ function renderCheck ( $primary, $secondary){
 		";
 	return $svg;
 }
-
-//<rect x='0' y='0' height='50' width='50' stroke='$secondary' stroke-width='10' fill='$primary' />

@@ -157,12 +157,13 @@
 
 .annotation,
 .annotation-tooltip{
+	box-sizing: border-box;
 	font-size: .8em;
-	padding:.5em;
+	padding: 8px;
 }
 
 .annotation {
-	position:relative;
+	position: absolute;
 	line-height: 1em;	
 	width:30%;
 	clear:both;
@@ -289,4 +290,8 @@ button.delete-annotation:hover{
 		width:100%;
 	}
 	*/
+}
+
+.margin-notes-container{
+	position: relative;
 }

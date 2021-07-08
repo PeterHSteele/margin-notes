@@ -563,16 +563,19 @@ class Margin_Notes {
 				'title' => __( 'Container', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'display_settings',
-				'desc' => __( 'An id or class name of an html element in your theme to be used as the container for the annotations.', 'margin-notes')
+				'desc' => __( 'Optional. A css selector for an html element in your theme to be used as the container for the annotations. 
+				The best choice is usually the wrapper for the main content of an individual post, which varies by theme but is often named 
+				"div.entry-content" or something similar. Feel free to leave this field blank if you\'re not sure what to write. Defaults to 
+				the element targeted by the `post_class` function.', 'margin-notes')
 			),
-			array(
+			/*array(
 				'name' => 'container_type',
 				'title' => __( 'Container Attribute Type', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
 				'desc' => __( 'The name listed above is an:', 'margin-notes'),
 				'values' => array( 'id', 'class' )
-			),
+			),*/
 			array(
 				'name' => 'width_value',
 				'title' => __( 'Width Value', 'margin-notes' ),
@@ -975,7 +978,7 @@ class Margin_Notes {
 				border-left: 3px solid {$primary};
 				color: {$tertiary};
 				background: {$note_background};
-				float: {$which_margin};
+				{$which_margin}: 0;
 				width: {$width}!important;
 			}
 		";
@@ -1119,16 +1122,11 @@ class Margin_Notes {
 
 		$user_styles = $this->build_inline_styles();
 		wp_add_inline_style( 'margin_notes_style', wp_kses( $user_styles, array("\'", '\"') ) );
-
+		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
-
 		$settings = get_option( 'margin_notes_display_options' );
-		/*$container = $settings['container_type'] === 'id' ? 
-					'#' . $settings['container'] : 
-					'.' . $settings['container'];*/
-
-		$container = '.margin-notes-container';
+		$container = !empty( $settings['container']) ?  $settings['container'] : '.margin-notes-container';
 
 		$nonce 			= wp_create_nonce( 'populate_annotations' );
 		$content      	= apply_filters( 'the_content', get_the_content( null, false, $post_obj ) );
