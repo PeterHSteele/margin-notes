@@ -1099,6 +1099,12 @@ class Margin_Notes {
 			return;
 		}
 
+		//enqueue styles
+		wp_enqueue_style( 'margin_notes_style', plugins_url( '/lib/margin-notes-style.css', __FILE__ ) );
+
+		$user_styles = $this->build_inline_styles();
+		wp_add_inline_style( 'margin_notes_style', wp_kses( $user_styles, array("\'", '\"') ) );
+
 		/*
 		Get user, annotaions, and post objects, 
 		avoiding anything undefined along the way.
@@ -1116,12 +1122,6 @@ class Margin_Notes {
 
 		if (! array_key_exists( $post, $site_annotations[$user] )) return;
 		$annotations = $site_annotations[$user][$post];
-
-		//enqueue styles
-		wp_enqueue_style( 'margin_notes_style', plugins_url( '/lib/margin-notes-style.css', __FILE__ ) );
-
-		$user_styles = $this->build_inline_styles();
-		wp_add_inline_style( 'margin_notes_style', wp_kses( $user_styles, array("\'", '\"') ) );
 		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
