@@ -980,6 +980,14 @@ class Margin_Notes {
 				background: {$note_background};
 				{$which_margin}: 0;
 				width: {$width}!important;
+				max-width: none!important;
+			}
+
+			@media all and (max-width: 968px){
+				.annotation{
+					$which_margin: calc(-100% + 16px);
+					width: 100%!important;
+				}
 			}
 		";
 

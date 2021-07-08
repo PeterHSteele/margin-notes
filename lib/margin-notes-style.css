@@ -171,6 +171,12 @@
 	z-index:0;
 }
 
+@media all and (max-width: 968px){
+	.annotation{
+		padding: 8px 8px 8px 16px;
+	}
+}
+
 .annotation p{
 	margin:0;
 	color:inherit;
