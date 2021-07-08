@@ -12,7 +12,7 @@
 	position:fixed;
 	top:80px;
 	z-index: 10000;
-	width:25%;
+	width:25%!important;
 }
 
 .margin-notes-wrapper-left{
@@ -28,6 +28,18 @@
 	right:10000px;
 }
 
+#margin-notes-form input[type=checkbox]:checked + svg line{
+	stroke: #000;
+}
+
+#margin-notes-add svg circle{
+	fill: #000;
+}
+
+#margin-notes-add svg line{
+	stroke: #fff;
+}
+
 /* Form */
 
 #margin-notes-form{
@@ -37,6 +49,8 @@
 	font-size: 16px;
 	position:relative;
 	overflow:hidden;
+	background: #fff;
+	border-radius: 5px 0 0 5px;
 }
 
 .margin-notes-wrapper-right {
@@ -47,7 +61,6 @@
 .margin-notes-wrapper-left {
 	transition: left .5s;
 	left:-25%;
-	/*left: -100%;*/
 }
 
 .margin-notes-wrapper-right.expand {
@@ -70,6 +83,7 @@
 	font-size: 1em;
 	border-radius:5px;
 	padding:.1em;
+	border: 1px solid #333;
 }
 
 .margin-notes-wrapper textarea{
@@ -81,19 +95,10 @@
 .margin-notes-form label{
 	display:block;
 }
-/*
-.margin-notes-form label,
-.margin-notes-form input,
-.margin-notes-form textarea
-{
-	width:95%;
-	margin:2.5% auto;
-}
-*/
+
 .margin-notes-form input,
 .margin-notes-form textarea{
 	box-sizing:border-box;
-	border:none;
 	color:rgb(100,100,100);
 }
 
@@ -123,8 +128,6 @@
 }
 
 #margin-notes-submit:hover{
-	/*background: white;
-	color:var(--lightBlue);*/
 	transform:scale(1.1);
 }
 
@@ -138,6 +141,7 @@
 	padding:0;
 	height:20px;
 	width:20px;
+	z-index: 10;
 }	
 
 .margin-notes-add svg{
@@ -153,12 +157,13 @@
 
 .annotation,
 .annotation-tooltip{
+	box-sizing: border-box;
 	font-size: .8em;
-	padding:.5em;
+	padding: 8px;
 }
 
 .annotation {
-	position:relative;
+	position: absolute;
 	line-height: 1em;	
 	width:30%;
 	clear:both;
@@ -181,7 +186,6 @@
 
 .mn-highlight:hover > .annotation-tooltip{
 	display:block;
-	
 }
 
 #margin-notes-delete-annotation {
@@ -239,7 +243,6 @@ button.delete-annotation:hover{
 	left:0;
 	width: 300px;
 	background:transparent;
-	/*box-shadow: 3px 3px 15px 1px rgb(100,100,100);*/
 	transition: opacity .4s, scale .4s;
 }
 
@@ -256,8 +259,8 @@ button.delete-annotation:hover{
 .annotation-tooltip div.tip-content{
 	margin: 0;
 	padding: .5em .2em;
-	box-shadow: 0px 20px 40px 0px rgb(145,150,155);
 }
+
 
 @media screen and (max-width: 700px){
 	.margin-notes-wrapper-left{
@@ -269,12 +272,6 @@ button.delete-annotation:hover{
 		width:50%;
 		right:-50%;
 	}
-
-	/*
-	#margin-notes-form{
-		width:100%;
-	}
-	*/
 }
 
 @media screen and (max-width: 400px){
@@ -293,4 +290,8 @@ button.delete-annotation:hover{
 		width:100%;
 	}
 	*/
+}
+
+.margin-notes-container{
+	position: relative;
 }
