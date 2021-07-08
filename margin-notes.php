@@ -986,7 +986,6 @@ class Margin_Notes {
 		} else{
 			$annotation_style = "
 			.annotation-tooltip div.tip-content{
-				border-left: 3px solid {$primary};
 				background: {$note_background};
 			}
 
