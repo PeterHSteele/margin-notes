@@ -278,12 +278,24 @@ class Margin_Notes {
 			$delete_url_base = wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation' , 'delete-annotation' );
 			$delete_url = $delete_url_base . $delete_url_query_string;
 			$delete_button = sprintf( '<a class="%s" href="%s">%s</a>', 'mn-delete-annotation', esc_url( $delete_url ), esc_html__( 'delete', 'margin-notes') );
+
+			ob_start();
+			?>
+			<button aria-hidden class="annotation-slideout-control" type="button">
+				<span class="annotation-number"><?php echo $note_num ?></span>
+			</button>
+			<?php
+			$slideout_button = ob_get_contents();
+			ob_end_clean();
 						
 			if ( ! $settings['hide_notes'] && $margin_display ){
-					
+				$which_margin= 'left' === $settings['which_margin'] ? 'left' : 'right';
+				
 				$annotation_html .= sprintf( 
-					'<div class="annotation annotation-%d"><p>%d. %s</p>%s</div>', 
+					'<div class="annotation annotation-%d annotation-%s">%s<p>%d. %s</p>%s</div>', 
 					esc_attr( $current['id'] ), 
+					$which_margin,
+					$slideout_button,
 					$note_num, 
 					esc_html( stripslashes( $current['annotation'] ) ),  
 					$delete_button 
@@ -437,8 +449,6 @@ class Margin_Notes {
 
 		$settings = get_option( 'margin_notes_display_options' );
 
-
-
 		$svg = '
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
 			<circle cx="25" cy="25" r="25" fill="'.$settings['primary_color'].'">
@@ -456,7 +466,7 @@ class Margin_Notes {
 
 		$form_class = 'margin-notes-form margin-notes-form-' . $direction ;
 		
-		$html = '<button id="margin-notes-add" class="margin-notes-add margin-notes-button">';
+		$html = '<button id="margin-notes-add" class="margin-notes-add margin-notes-button margin-notes-add-' . $direction . '">';
 		$html .= $svg.'</button>';					
 		$html .= sprintf( '<div id="margin-notes-wrapper" class="%s">', esc_attr( $wrapper_class ) );
 		$html .= sprintf( 
@@ -968,73 +978,61 @@ class Margin_Notes {
 		$which_margin = esc_attr($options['which_margin']);
 		$width_value = esc_attr($options['width_value']);
 		$width_unit = esc_attr($options['width_unit']);
+		$other_margin = 'left' == $which_margin ? 'right' : 'left';
 
 		$width = $width_value . $width_unit;
 		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
-		if ( $display_type === 'margins' ){
+		if ( 'margins' === $display_type ){
 			$annotation_style = "
 			.annotation{
-				border-left: 3px solid {$primary};
-				color: {$tertiary};
-				background: {$note_background};
-				{$which_margin}: 0;
-				width: {$width}!important;
-				max-width: none!important;
-			}
-
-			@media all and (max-width: 968px){
-				.annotation{
-					$which_margin: calc(-100% + 16px);
-					width: 100%!important;
-				}
-			}
+				border-$other_margin: 3px solid $tertiary;
+				color: $tertiary;
+				background: $note_background;
+				width: $width!important;
+			}		
 		";
 
 		} else{
 			$annotation_style = "
 			.annotation-tooltip div.tip-content{
-				background: {$note_background};
+				background: $note_background;
 			}
 
 			.annotation-tooltip div.tip-content p{
-				color: {$tertiary};
+				color: $tertiary;
 			}
 
 			.tri{
-				border-bottom: 10px solid {$note_background};
+				border-bottom: 10px solid $note_background;
 			}
 		";
 
 		}
 
 		$add_button_style = "
-			#margin-notes-add{
-				${which_margin}: 5px;
-			}
-
 			#margin-notes-add svg circle{
-				fill: ${secondary};
+				fill: $secondary;
 			}
 
 			#margin-notes-add svg line{
-				stroke: ${primary};
+				stroke: $primary;
 			}
 		";
 
 		$highlight_style = "
 			.mn-highlight{
-				color:{$highlight_text_color};
+				color: $highlight_text_color ;
 			}
 		"; 
 
 		$delete_style = "
 			.mn-delete-annotation{
-				color:{$primary};
+				color: $primary ;
 			}
 
 			.mn-delete-annotation:hover{
-				color:{$tertiary}
+				color: $tertiary;
 			}
 		";
 

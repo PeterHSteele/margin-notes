@@ -6,13 +6,13 @@
 	display:none;
 }
 
-.margin-notes-wrapper{
+#margin-notes-wrapper{
 	box-sizing:border-box;
 	font-family: sans-serif;
 	position:fixed;
 	top:80px;
 	z-index: 10000;
-	width:25%!important;
+	width:25%;
 }
 
 .margin-notes-wrapper-left{
@@ -50,7 +50,7 @@
 	position:relative;
 	overflow:hidden;
 	background: #eee;
-	border-radius: 5px 0 0 5px;
+	border-radius: 5px;
 }
 
 .margin-notes-wrapper-right {
@@ -126,6 +126,7 @@
 	width:15%;
 	min-width: 5em;
 	text-decoration: none;
+	text-transform: none;
 }
 
 #margin-notes-submit:hover{
@@ -136,14 +137,21 @@
 	outline:none;
 	position:fixed;
 	top:40px;
-	right: 5px;
 	border:none;
 	border-radius:50%;
 	padding:0;
 	height:20px;
 	width:20px;
 	z-index: 10;
-}	
+}
+
+.margin-notes-add-right{
+	right: 5px;
+}
+
+.margin-notes-add-left{
+	left: 5px;
+}
 
 .margin-notes-add svg{
 	height:20px;
@@ -151,10 +159,14 @@
 	object-fit:contain;
 }
 
+/* Source Text/Highlights */
+
 .mn-highlight{
 	color:var(--lightBlue);
 	position:relative;
 }
+
+/* Annotations */
 
 .annotation,
 .annotation-tooltip{
@@ -168,12 +180,79 @@
 	line-height: 1em;	
 	width:30%;
 	clear:both;
-	z-index:0;
+	z-index:10;
+	max-width: none!important;
+	transition: transform .3s ease;
+}
+
+.annotation-left{
+	left: 0;
+}
+
+.annotation-right{
+	right: 0;
+}
+
+.annotation-slideout-control{
+	display: none;
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 16px;
+	padding: 0;
+	font-size: 16px;
+	font-family: inherit;
+	background: #363636;
+	color: #fff;
+	z-index: 10;
+}
+
+@media all and (max-width: 968px){
+	div.annotation{
+		border-left: none;
+		border-right: none;
+		width: 50%!important;
+	}
+
+	.annotation-left{
+		transform: translateX(calc( -100% + 16px ));
+	}
+
+	.annotation-right{
+		transform: translateX(calc( 100% - 16px ));
+	}
+
+	.annotation.annotation-expanded{
+		transform: translateX( 0 );
+	}
+}
+
+@media all and (max-width: 760px){
+	div.annotation{
+		width: 100%!important;
+	}
+}
+
+.annotation-left .annotation-slideout-control{
+	right: 0;
+}
+
+.annotation-right .annotation-slideout-control{
+	left: 0;
+}
+
+.annotation-slideout-control:hover{
+	background: #fff;
+	color: #363636;
 }
 
 @media all and (max-width: 968px){
 	.annotation{
-		padding: 8px 8px 8px 16px;
+		padding: 8px 20px;
+	}
+
+	.annotation-slideout-control{
+		display: block;
 	}
 }
 
@@ -273,27 +352,32 @@ button.delete-annotation:hover{
 	padding: 1em;
 }
 
-@media screen and (max-width: 700px){
+@media screen and (max-width: 968px){
+	#margin-notes-wrapper{
+		width: 50%;
+		max-width: none;
+	}
+
 	.margin-notes-wrapper-left{
-		width:50%;
 		left:-50%;
 	}
 
 	.margin-notes-wrapper-right{
-		width:50%;
 		right:-50%;
 	}
 }
 
-@media screen and (max-width: 400px){
+@media screen and (max-width: 760px){
+	#margin-notes-wrapper{
+		width: 100%;
+	}
+
 	.margin-notes-wrapper-right{
-		width:100%;
-		right:-100%;
+		right: -100%;
 	}
 
 	.margin-notes-wrapper-left{
-		width:100%;
-		left:-100%;
+		left: -100%;
 	}
 
 	/*
