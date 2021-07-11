@@ -36,21 +36,29 @@ class Margin_Notes {
 	//property to hold singleton instance
 	static $instance = false;
 
+	private $user;
+
 	private function __construct() {
 
 		//front-end
 		add_filter( 'the_content' , array( $this, 'filter_content'), 10000 );
 		add_action( 'wp_enqueue_scripts', array( $this, 'load_front_end'));
 		add_filter( 'post_class', array($this, 'add_container_class'), 50);
+		//add_action( 'admin_bar_menu', array($this, 'output_new_annotation_button'), 50);
 		
 		//back-end
+		add_action( 'init', array( $this, 'get_user' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_back_end' ) );
 		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
 		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
 		add_action( 'admin_head', array( $this, 'admin_style' ) );
+		add_filter( 'plugin_action_links_margin-notes/margin-notes.php', array($this,'add_settings_link_to_plugins_table'));
+	}
 
+	public function get_user(){
+		$this->user = wp_get_current_user()->ID;
 	}
 
 	/**
@@ -58,7 +66,6 @@ class Margin_Notes {
 	* it already exists.
 	*
 	* @since 1.0.0
-	*
 	*/
 
 	public static function get_instance(){
@@ -89,7 +96,8 @@ class Margin_Notes {
 		}
 
 		add_option( 'margin_notes_html_string', '' );
-		add_option( "annotations" , array() );
+		add_option( "margin_notes_annotations" , array() );
+		add_option( "margin_notes_users_have_seen_hint", array());
 
 
 		self::add_annotation_cap();
@@ -119,9 +127,10 @@ class Margin_Notes {
 	*/
 
 	public static function on_uninstall(){
-		delete_option( 'annotations' );
+		delete_option( 'margin_notes_annotations' );
 		delete_option( 'margin_notes_html_string' );
 		delete_option( 'margin_notes_display_options ');
+		delete_option( 'margin_notes_users_have_seen_hint' );
 	}
 
 	/**
@@ -168,6 +177,37 @@ class Margin_Notes {
 			$role->remove_cap( 'annotate' );
 		}
 	}
+/*
+	public function add_new_icon(){
+		return '
+		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
+			<circle cx="25" cy="25" r="25" fill="#000">
+				
+			</circle>
+			<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="#fff" stroke-width="5"  stroke-linecap="round"/>
+			<line x1="15" y1="25" x2="35" y2="25" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+			<title>'.__( 'Margin Notes: Add Annotation', 'margin-notes' ).'</title>
+		</svg>
+		';
+	}
+
+	public function output_new_annotation_button( WP_Admin_Bar $admin_bar ){
+
+		$admin_bar->add_menu(array(
+			'id' => 'margin_notes_add_annotation',
+			'title' =>  __('New Annotation', 'margin-notes')
+			//'title' => '<span class="dashicons dashicons-insert" style="font-family: \'dashicons\'; margin-right: 3px;"></span>' . __('New Annotation', 'margin-notes')
+			//'title' => '<button><span class="add-new-icon">' . $this-> add_new_icon() . '</span>' . __('New Annotation', 'margin-notes') . '</button>',
+		));
+		//return $admin_bar;
+	} 
+*/
+	private function add_settings_link_to_plugins_table( $actions ){
+		$url = esc_url( admin_url() . '/options-reading.php#margin_notes_display_settings' );
+		$link = '<a href="' . $url .'">' . __('Settings', 'margin-notes') . '</a>';
+		array_unshift($actions, $link);
+		return $actions;
+	}
 
 	public function filter_content( $content ){
 
@@ -201,11 +241,11 @@ class Margin_Notes {
 	*/
 
 	public function show_annotations( $content ) {
-		$site_annotations = get_option( 'annotations' );
+		$site_annotations = get_option( 'margin_notes_annotations', array() );
 		$html_string = get_option( 'margin_notes_html_string' );
 		
 		$user = wp_get_current_user()->ID;
-		if ( 0 === $user ) return $content;
+		if ( 0 === $user || !array_key_exists($user, $site_annotations) ) return $content;
 		
 		$post = get_post()->post_name;
 		if (!array_key_exists($post, $site_annotations[$user] )) return $content;
@@ -415,11 +455,11 @@ class Margin_Notes {
 		$post  = $req['post'];
 		
 		$user = wp_get_current_user()->ID;
-		$annotations = get_option('annotations');
+		$annotations = get_option('margin_notes_annotations');
 
 		array_splice( $annotations[$user][$post], $id, 1);
 		
-		update_option( 'annotations', $annotations );
+		update_option( 'margin_notes_annotations', $annotations );
 		update_option( 'margin_notes_html_string', '');
 
 		$url = get_home_url() . '/index.php/' . $post;
@@ -451,7 +491,7 @@ class Margin_Notes {
 
 		$svg = '
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
-			<circle cx="25" cy="25" r="25" fill="#000">
+			<circle cx="25" cy="25" r="25" fill="#262626">
 				
 			</circle>
 			<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="#fff" stroke-width="5"  stroke-linecap="round"/>
@@ -463,12 +503,38 @@ class Margin_Notes {
 		$direction = $settings['which_margin'] === 'left' ? 'left' : 'right';
 		$theme_class = $settings['form_theme'] === 'dark' ? 'mn-dark-theme' : 'mn-light-theme';
 
+		$users_who_have_seen_the_hint = get_option('margin_notes_users_have_seen_hint', array());
+		$hint_visible = !in_array($this->user, $users_who_have_seen_the_hint);
+
+		if ($hint_visible){
+			$users_who_have_seen_the_hint[] = $this->user;
+			update_option('margin_notes_users_have_seen_hint', $users_who_have_seen_the_hint);
+		}
+
 		$wrapper_class = 'margin-notes-wrapper margin-notes-wrapper-' . $direction ;
 
 		$form_class = 'margin-notes-form margin-notes-form-' . $direction . ' ' . $theme_class;
-		
-		$html = '<button id="margin-notes-add" class="margin-notes-add margin-notes-button margin-notes-add-' . $direction . '">';
-		$html .= $svg.'</button>';					
+
+		ob_start();
+		?>
+			<div id="margin-notes-add-button-assembly" class="margin-notes-add-<?php echo esc_attr($direction); ?>">
+				<?php if ($hint_visible): ?>
+				<div id="margin-notes-hint">
+					<p><?php esc_html_e('Click here to add an annotation!') ?></p>
+				</div>
+				<?php endif; ?>
+				<button id="margin-notes-add" class="margin-notes-add margin-notes-button">
+					<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
+						<circle cx="25" cy="25" r="25" fill="#262626"></circle>
+						<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="#fff" stroke-width="5"  stroke-linecap="round"/>
+						<line x1="15" y1="25" x2="35" y2="25" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+						<title><?php esc_html_e( 'Margin Notes: Add Annotation', 'margin-notes' ) ?></title>
+					</svg>
+				</button>
+			</div>
+		<?php
+		$html = ob_get_contents();
+		ob_end_clean();				
 		$html .= sprintf( '<div id="margin-notes-wrapper" class="%s">', esc_attr( $wrapper_class ) );
 		$html .= sprintf( 
 					'<form id="margin-notes-form" class="%s" action="%s" method="post">', 
@@ -523,7 +589,7 @@ class Margin_Notes {
 		$sections = array(
 			'display_settings' => array(
 				'title' => __( 'Margin Notes Display Settings', 'margin-notes' ),
-				'callback' => '__return_true',
+				'callback' => array($this, 'echo_display_section_instructions'),
 				'page' => 'reading'
 			),
 			'color_settings' => array(
@@ -563,13 +629,6 @@ class Margin_Notes {
 				'section' => 'color_settings',
 				'desc' => __( 'Color for the text of the notes.', 'margin-notes')
 			),
-			/*array(
-				'name' => 'highlight_text_color',
-				'title' => __('Highlight Text Color', 'margin-notes'),
-				'type' => 'text_input',
-				'section' => 'color_settings',
-				'desc' => __( 'Text color for annotation\'s source text.', 'margin-notes')
-			),*/
 			array(
 				'name' => 'display_type',
 				'title' => __( 'Display Type', 'margin-notes' ),
@@ -588,14 +647,6 @@ class Margin_Notes {
 				"div.entry-content" or something similar. Feel free to leave this field blank if you\'re not sure what to write. Defaults to 
 				the element targeted by the `post_class` function.', 'margin-notes')
 			),
-			/*array(
-				'name' => 'container_type',
-				'title' => __( 'Container Attribute Type', 'margin-notes' ),
-				'type' => 'radio_group',
-				'section' => 'display_settings',
-				'desc' => __( 'The name listed above is an:', 'margin-notes'),
-				'values' => array( 'id', 'class' )
-			),*/
 			array(
 				'name' => 'width_value',
 				'title' => __( 'Width Value', 'margin-notes' ),
@@ -779,33 +830,23 @@ class Margin_Notes {
 	* @since 1.0.0
 	*/
 
-	public function sanitize_radio( $input, $val1, $val2 ) {
+	private function sanitize_radio( $input, $val1, $val2 ) {
 		return $input == $val1 ? $val1 : $val2;
 	}
 
 	/**
-	* Sanitizes user input from color fields in the the settings section.
-	*
-	* @since 1.0.0
+	 * Outputs description for display settings section.
+	 * 
+	 * @since 1.0.0
 	*/
-	/*
-	private function sanitize_color_field( $color ){
 
-		if ( strlen( $color ) > 7 ){
-			$color = substr( $color, 0, 7 );
-		}
-
-		$first = substr( $color, 0, 1);
-		$color = substr( $color, 1, 6 );
-		
-		if ( $first != '#' || preg_match( '/[a-zA-Z\d]+/', $color ) === false ){
-			$color = '';
-		} else {
-			$color = '#' . $color;
-		}
-		
-		return $color;
-	}*/
+	public function echo_display_section_instructions($args){
+		?>
+		<p id="<?php echo esc_attr($args['id']); ?>">
+			<?php esc_html_e( 'Customize the UI for your sites\' annotations.', 'margin-notes' ) ?>
+		</p>
+		<?php
+	}
 
 	/**
 	 * Outputs description for colors settings section.
@@ -922,12 +963,12 @@ class Margin_Notes {
 		))[0];
 		$url = get_permalink( $post_obj );
 
-		$annotations = get_option('annotations');
+		$annotations = get_option('margin_notes_annotations');
 		$user = wp_get_current_user()->ID;
 		
 		if ( isset( $_POST['delete'] ) ){
 			$annotations[$user][$post]=array();
-			update_option( 'annotations' , $annotations );
+			update_option( 'margin_notes_annotations' , $annotations );
 			update_option( 'margin_notes_html_string', '' );
 			wp_redirect( $url );
 		}
@@ -972,7 +1013,7 @@ class Margin_Notes {
 					'annotation' => $annotation 
 				);
 			}
-			update_option( 'annotations' , $annotations );
+			update_option( 'margin_notes_annotations' , $annotations );
 		}
 		
 		wp_redirect( $url );
@@ -1135,6 +1176,7 @@ class Margin_Notes {
 
 		//enqueue styles
 		wp_enqueue_style( 'margin_notes_style', plugins_url( '/lib/margin-notes-style.css', __FILE__ ) );
+		wp_enqueue_style( 'dashicons' );
 
 		$user_styles = $this->build_inline_styles();
 		wp_add_inline_style( 'margin_notes_style', wp_kses( $user_styles, array("\'", '\"') ) );
@@ -1145,17 +1187,20 @@ class Margin_Notes {
 		*/
 
 		$user = wp_get_current_user()->ID;
-		if ( 0 === $user) return;
+		if ( 0 === $user ) return;
 
-		$site_annotations 	= get_option( 'annotations' );
+		$site_annotations = get_option('margin_notes_annotations', array());
 
-		if (! array_key_exists($user, $site_annotations)) return;
+		//if (! array_key_exists($user, $site_annotations)) return;
 
 		$post_obj 	= get_post();
 		$post 			= $post_obj->post_name;
 
-		if (! array_key_exists( $post, $site_annotations[$user] )) return;
-		$annotations = $site_annotations[$user][$post];
+		if ( isset($site_annotations[$user]) && isset($site_annotations[$user][$post])){
+			$annotations = $site_annotations[$user][$post];
+		} else{
+			$annotations = array();
+		}
 		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
@@ -1218,5 +1263,4 @@ class Margin_Notes {
 }
 
 $Margin_Notes = Margin_Notes::get_instance();
-
 ?>
