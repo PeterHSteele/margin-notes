@@ -451,20 +451,21 @@ class Margin_Notes {
 
 		$svg = '
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
-			<circle cx="25" cy="25" r="25" fill="'.$settings['primary_color'].'">
+			<circle cx="25" cy="25" r="25" fill="#000">
 				
 			</circle>
-			<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="'.$settings['secondary_color'].'" stroke-width="5"  stroke-linecap="round"/>
-			<line x1="15" y1="25" x2="35" y2="25" stroke="'.$settings['secondary_color'].'" stroke-width="5" stroke-linecap="round"/>
+			<line class="vertical" x1="25" y1="15" x2="25" y2="35" stroke="#fff" stroke-width="5"  stroke-linecap="round"/>
+			<line x1="15" y1="25" x2="35" y2="25" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
 			<title>'.__( 'Margin Notes: Add Annotation', 'margin-notes' ).'</title>
 		</svg>
 		';
 
 		$direction = $settings['which_margin'] === 'left' ? 'left' : 'right';
+		$theme_class = $settings['form_theme'] === 'dark' ? 'mn-dark-theme' : 'mn-light-theme';
 
 		$wrapper_class = 'margin-notes-wrapper margin-notes-wrapper-' . $direction ;
 
-		$form_class = 'margin-notes-form margin-notes-form-' . $direction ;
+		$form_class = 'margin-notes-form margin-notes-form-' . $direction . ' ' . $theme_class;
 		
 		$html = '<button id="margin-notes-add" class="margin-notes-add margin-notes-button margin-notes-add-' . $direction . '">';
 		$html .= $svg.'</button>';					
@@ -476,20 +477,17 @@ class Margin_Notes {
 				);
 		$html .= sprintf( '<input type="text" name="post-name" id="post-name" readonly="readonly" value="%s">', esc_attr(get_post()->post_name) );
 		$html .= '<label>'.__( 'Copy and paste source text for your annotation.', 'margin-notes' );
-		$html .= '<input name="highlight" id="highlight-input" type="text"></label>';
+		$html .= '<input name="highlight" id="margin-notes-highlight-input" type="text"></label>';
 		$html .= '<p id="highlight-error"></p>';
 		$html .= '<label>'.__( 'Create an annotation.', 'margin-notes' );
 		$html .= sprintf( 
 					'<textarea name="annotation" rows="10" id="annotation-input" placeholder="%s ..." type="text">',
-					__( 'your thoughts' , 'margin-notes' )
-				);
+				$this->annotation_field_placeholders(),
+		);
 		$html .= '</textarea></label>';
 		$html .= '<label>'.__('Delete all annotations on this page.', 'margin-notes' );
 		$html .= '<input type="checkbox" id="deleteAll" value="delete" name="delete">';
-		$html .= sprintf( 
-					/*'<div class="surrogate-checkbox colored-border">*/'%s',/*</div>',*/
-					renderCheck( $settings['primary_color'], $settings['secondary_color'] )
-				);
+		$html .= renderCheck();
 		$html .= '</label>';
 		$html .= '<input type="hidden" name="action" value="annotation">';
 		$html .= wp_nonce_field('submit-annotation','thoughts-on-article');
@@ -501,6 +499,17 @@ class Margin_Notes {
 
 		return $content.$html;
 
+	}
+
+	public function annotation_field_placeholders(){
+		$placeholders = array(
+			__( 'Written at the nadir of our hero\'s hopes', 'margin-notes' ),
+			__( 'This was in fact the first time in recorded history that', 'margin-notes' ),
+			__( '20 years later, when sliced bread was invented, many would say', 'margin-notes' ),
+			__( 'In the annals of great patriotic songs', 'margin-notes' ),
+		);
+
+		return $placeholders[rand(0,3)];
 	}
 
 	/**
@@ -515,51 +524,52 @@ class Margin_Notes {
 			'display_settings' => array(
 				'title' => __( 'Margin Notes Display Settings', 'margin-notes' ),
 				'callback' => '__return_true',
-				'page' => 'discussion'
+				'page' => 'reading'
 			),
 			'color_settings' => array(
 				'title' => __( 'Margin Notes Color Settings', 'margin-notes' ),
-				'callback'=> 'echo_color_section_instructions',
-				'page' => 'discussion'
+				'callback'=> array($this, 'echo_color_section_instructions'),
+				'page' => 'reading'
 			)
 		);
 
 		$fields = array(
 			array(
-				'name' => 'primary_color',
-				'title' => __( 'Form Background Color', 'margin-notes' ),
-				'type' => 'text_input',
+				'name' => 'form_theme',
+				'title' => __( 'Form Theme', 'margin-notes' ),
+				'type' => 'radio_group',
 				'section' => 'color_settings',
-				'desc' => __('Background color for "create new" form. Defaults to white.', 'margin-notes'),
+				'desc' => __( 'Color scheme for the "Add Annotation" form', 'margin-notes'),
+				'values' => array( 'light', 'dark' )
 			),
 			array(
-				'name' => 'secondary_color',
-				'title' => __( 'Form Text Color', 'margin-notes'),
+				'name' => 'submit_button_color',
+				'title' => __( 'Form Submit Button Color', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'color_settings',
-				'desc' => __('Text color for "Create New" form. Defaults to white', 'margin-notes'),
-			),
-			array(
-				'name' => 'tertiary_color',
-				'title' => __( 'Annotation Text Color', 'margin-notes'),
-				'type' => 'text_input',
-				'section' => 'color_settings',
-				'desc' => __( 'Color for the text of the notes themselves. Defaults to black.', 'margin-notes')
+				'desc' => __('Color for submit button for "Add Annotation" form.', 'margin-notes'),
 			),
 			array(
 				'name' => 'note_background_color',
 				'title' => __( 'Annotation Background Color', 'margin-notes' ),
 				'type' => 'text_input',
 				'section' => 'color_settings',
-				'desc' => __( 'Color for background of the notes. Defaults to white.', 'margin-notes')
+				'desc' => __( 'Color for background of the notes.', 'margin-notes')
 			),
 			array(
+				'name' => 'note_text_color',
+				'title' => __( 'Annotation Text Color', 'margin-notes'),
+				'type' => 'text_input',
+				'section' => 'color_settings',
+				'desc' => __( 'Color for the text of the notes.', 'margin-notes')
+			),
+			/*array(
 				'name' => 'highlight_text_color',
 				'title' => __('Highlight Text Color', 'margin-notes'),
 				'type' => 'text_input',
 				'section' => 'color_settings',
 				'desc' => __( 'Text color for annotation\'s source text.', 'margin-notes')
-			),
+			),*/
 			array(
 				'name' => 'display_type',
 				'title' => __( 'Display Type', 'margin-notes' ),
@@ -684,7 +694,7 @@ class Margin_Notes {
 		] = $args;
 		
 		$html = '';
-		$value = isset( $setting ) ? $setting : '' ;
+		$value = esc_attr($setting);
 
 		$html .= $this->get_description( $description );
 
@@ -733,14 +743,15 @@ class Margin_Notes {
 
 	public function sanitize_settings_fields( $input ){
 		
-		foreach ( ['primary_color', 'secondary_color', 'tertiary_color', 'note_background_color'] as $field ){
+		foreach ( ['submit_button_color', 'note_background_color', 'note_text_color'] as $field ){
 			$input[$field] = sanitize_hex_color( $input[$field] );
 		}
 
 		$radios = array(
 			array( 'container_type', 'id', 'class'  ),
 			array( 'display_type', 'margins', 'tooltips' ),
-			array( 'which_margin', 'left', 'right' )
+			array( 'which_margin', 'left', 'right' ),
+			array( 'form_theme', 'light', 'dark'),
 		);
 
 		foreach ( $radios as $field ){
@@ -794,8 +805,20 @@ class Margin_Notes {
 		}
 		
 		return $color;
+	}*/
+
+	/**
+	 * Outputs description for colors settings section.
+	 * 
+	 * @since 1.0.0
+	*/
+
+	public function echo_color_section_instructions(){
+		 ?>
+		<p><?php esc_html_e( 'You can specify as many as four theme colors. Please use hex format (ie., "#123456" or "#BBB").', 'margin-notes')?></p>
+		<?php
 	}
-  */
+
 	/**
 	* Registers margin notes settings and prints html for settings fields
 	*
@@ -805,7 +828,7 @@ class Margin_Notes {
 	public function setup_admin_settings (){
 		
 		register_setting(
-			'discussion',
+			'reading',
 			'margin_notes_display_options',
 			array(
 				'type' => 'array',
@@ -818,12 +841,6 @@ class Margin_Notes {
 		$display_type = $settings['display_type'];
 
 		['sections' => $sections, 'fields' => $fields ] = $this->settings_parameters();
-		
-		if ( ! function_exists( 'echo_color_section_instructions' ) ){
-			function echo_color_section_instructions(){
-				echo '<p>' . __( 'You can specify as many as four theme colors. Please use hex format (ie., "#123456" or "#BBB").', 'margin-notes') . '</p>';
-			}
-		}
 
 		foreach ( $sections as $section => $args ) {
 			add_settings_section( 'margin_notes_' . $section, $args['title'], $args['callback'], $args['page']  );
@@ -839,16 +856,18 @@ class Margin_Notes {
 				}
 			}
 
+			$setting = isset($settings[ $field['name'] ]) ? $settings[$field['name']] : '';
+
 			add_settings_field( 
 				'margin_notes_'.$field['name'],
 				$field['title'],
 				array( $this, $field['type'] ),
-				'discussion',
+				'reading',
 				'margin_notes_'.$field['section'],
 				array(
 					'name' => $field['name'],
 					'description' => $field['desc'],
-					'setting' => $settings[ $field['name'] ],
+					'setting' => $setting,
 					'values' => isset( $field['values'] ) ? $field['values'] : array(),
 					'class' => $field['name'].' '.$display
 				)
@@ -959,6 +978,56 @@ class Margin_Notes {
 		wp_redirect( $url );
 	}
 
+	public function get_safe_settings( $settings ){
+		$defaults = array(
+			'submit_button_color' => '#4d42cb',
+			'note_background_color' => '#4d42cb',
+			'note_text_color' => '#fff',
+			'which_margin' => 'right',
+			'width_value' => '20',
+			'width_unit' => '%',
+			'display_type' => 'margins',
+			'container' => '.margin-notes-container',
+		);
+
+		$safe_settings = array();
+
+		foreach ($defaults as $key => $default){
+			$safe_settings[$key] = !empty( $settings[$key] ) ? esc_attr($settings[$key]) : $defaults[$key];
+		}
+
+		return $safe_settings;
+	}
+
+	/**
+	 * Increases or decreases the brightness of a color by a percentage of the current brightness.
+	 *
+	 * @param   string  $hexCode        Supported formats: `#FFF`, `#FFFFFF`, `FFF`, `FFFFFF`
+	 * @param   float   $adjustPercent  A number between -1 and 1. E.g. 0.3 = 30% lighter; -0.4 = 40% darker.
+	 *
+	 * @return  string
+	 *
+	 * @author  maliayas (stack overflow username)
+	 */
+	public function adjust_brightness($hexCode, $adjustPercent) {
+		$hexCode = ltrim($hexCode, '#');
+
+		if (strlen($hexCode) == 3) {
+				$hexCode = $hexCode[0] . $hexCode[0] . $hexCode[1] . $hexCode[1] . $hexCode[2] . $hexCode[2];
+		}
+
+		$hexCode = array_map('hexdec', str_split($hexCode, 2));
+
+		foreach ($hexCode as & $color) {
+				$adjustableLimit = $adjustPercent < 0 ? $color : 255 - $color;
+				$adjustAmount = ceil($adjustableLimit * $adjustPercent);
+
+				$color = str_pad(dechex($color + $adjustAmount), 2, '0', STR_PAD_LEFT);
+		}
+
+		return '#' . implode($hexCode);
+	}
+
 	/**
 	* Creates the css for any plugin styles that depend on user settings
 	*
@@ -967,122 +1036,82 @@ class Margin_Notes {
 
 	public function build_inline_styles(){
 
-		$options = get_option('margin_notes_display_options');
+		$options = get_option('margin_notes_display_options',array());
 
-		$primary = esc_attr($options['primary_color']);
-		$secondary = esc_attr($options['secondary_color']);
-		$tertiary = esc_attr($options['tertiary_color']);
-		$note_background = esc_attr($options['note_background_color']);
-		$highlight_text_color = esc_attr($options['highlight_text_color']);
-		$display_type = $options['display_type'];
-		$which_margin = esc_attr($options['which_margin']);
-		$width_value = esc_attr($options['width_value']);
-		$width_unit = esc_attr($options['width_unit']);
+		[ 
+			'submit_button_color' => $submit_button_color, 
+			'note_background_color' => $note_background_color, 
+			'note_text_color' => $note_text_color, 
+			'display_type' => $display_type, 
+			'which_margin' => $which_margin, 
+			'width_value' => $width_value, 
+			'width_unit' => $width_unit,
+		] = $this->get_safe_settings( $options );
+
 		$other_margin = 'left' == $which_margin ? 'right' : 'left';
 
 		$width = $width_value . $width_unit;
 		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
 		if ( 'margins' === $display_type ){
+
 			$annotation_style = "
 			.annotation{
-				border-$other_margin: 3px solid $tertiary;
-				color: $tertiary;
-				background: $note_background;
+				border-$other_margin: 3px solid $note_text_color;
+				color: $note_text_color;
+				background: $note_background_color;
 				width: $width!important;
 			}		
 		";
 
-		} else{
+		} else { 
 			$annotation_style = "
 			.annotation-tooltip div.tip-content{
-				background: $note_background;
+				background: $note_background_color;
 			}
 
 			.annotation-tooltip div.tip-content p{
-				color: $tertiary;
+				color: $note_text_color;
 			}
 
 			.tri{
-				border-bottom: 10px solid $note_background;
+				border-bottom: 10px solid $note_background_color;
 			}
 		";
 
 		}
 
-		$add_button_style = "
-			#margin-notes-add svg circle{
-				fill: $secondary;
-			}
-
-			#margin-notes-add svg line{
-				stroke: $primary;
-			}
-		";
-
 		$highlight_style = "
 			.mn-highlight{
-				color: $highlight_text_color ;
+				color: $note_background_color;
 			}
 		"; 
 
 		$delete_style = "
 			.mn-delete-annotation{
-				color: $primary ;
-			}
-
-			.mn-delete-annotation:hover{
-				color: $tertiary;
+				color: $note_text_color;
 			}
 		";
-
-		//position form just off page on user's choice of left or right
-		$form_wrap_style = '';/*"
-			#margin-notes-wrapper{
-				width: {$width};
-				{$which_margin}: {$form_wrapper_offset};
-			";*/
-
-		$form_style = "
-			#margin-notes-form{
-				background:$primary;
-			}
-
-			#margin-notes-form label{
-				color:$secondary;
-			}
-
-			#margin-notes-form input[type=checkbox]:checked + svg line{
-				stroke:$primary;
-			}
-
-			#margin-notes-form input[type=checkbox]:checked + svg rect{
-				fill: $secondary;
-			}
-
-			#highlight-error{
-				color:$secondary;
-			}
-		";
-
-		$form_submit_style = "
-			#margin-notes-submit{
-				background:$primary;
-				color:$secondary;
-				border:2px solid $secondary;
-			}
-		";
-
-		$heading_style = "";
 		
-		if ( $display_type === 'margins' ){
-			$heading_style .= "h1,h2,h3,h4,h5,h6{
-				clear:none!important;
-			}";
+		$submit_button_dark = $this->adjust_brightness($submit_button_color, -.1);
+		$submit_button_light = $this->adjust_brightness($submit_button_color, .1);
+		
+		//position form just off page on user's choice of left or right
+		$form_style = "
+		.margin-notes-wrapper{
+			width: $width;
+			$which_margin: $form_wrapper_offset;
 		}
 
-		return $annotation_style . $highlight_style . $delete_style . $form_wrap_style . $form_style . $form_submit_style . $heading_style . $add_button_style;
-		
+		.margin-notes-wrapper.expand{
+			$which_margin: 0;
+		}
+
+		#margin-notes-submit{
+			background: linear-gradient(to top, $submit_button_dark, $submit_button_light);
+		}";
+
+		return $annotation_style . $highlight_style . $delete_style . $form_style;
 	}
 
 	/**
@@ -1131,21 +1160,19 @@ class Margin_Notes {
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
 		$settings = get_option( 'margin_notes_display_options' );
-		$container = !empty( $settings['container']) ?  $settings['container'] : '.margin-notes-container';
+		$settings = $this->get_safe_settings( $settings );
 
 		$nonce 			= wp_create_nonce( 'populate_annotations' );
 		$content      	= apply_filters( 'the_content', get_the_content( null, false, $post_obj ) );
 		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
 
 		wp_localize_script('margin-notes', 'settings', array(
-				'primary_color' => $settings['primary_color'],
-				'secondary_color' => $settings['secondary_color'],
 				'note_background_color' => $settings['note_background_color'],
-				'tertiary_color' => $settings['tertiary_color'],
+				'note_text_color' => $settings['note_text_color'],
 				'width_value' => $settings['width_value'],
 				'width_unit' => $settings['width_unit'],
 				'direction' => $settings['which_margin'],
-				'container' => $container,
+				'container' => $settings['container'],
 				'ajaxURL' => admin_url('admin-ajax.php'),
 				'security' => $nonce,
 				'display_type' => $settings['display_type'],

@@ -28,29 +28,28 @@
 	right:10000px;
 }
 
-#margin-notes-form input[type=checkbox]:checked + svg line{
-	stroke: #000;
-}
-
-#margin-notes-add svg circle{
-	fill: #000;
-}
-
-#margin-notes-add svg line{
-	stroke: #fff;
-}
-
 /* Form */
 
 #margin-notes-form{
 	box-sizing:border-box;
 	font-family: sans-serif;
-	padding:.5em;
+	padding: 8px 16px;
 	font-size: 16px;
 	position:relative;
 	overflow:hidden;
-	background: #eee;
+	/*background: #fff;*/
 	border-radius: 5px;
+	/*border: 2px solid #eee;*/
+}
+
+#margin-notes-form.mn-light-theme{
+	background: #fff;
+	border: 2px solid #eee;
+}
+
+#margin-notes-form.mn-dark-theme{
+	background: #17141a;
+	border: 2px solid #22201b;
 }
 
 .margin-notes-wrapper-right {
@@ -71,35 +70,86 @@
 	left: 0px;
 }
 
-
 #highlight-error{
 	margin: 0;
 	padding: .2em 0;
+	font-size: 13px;
+	color: #cc5050;;
+	margin-bottom: 17px;
 }
 
-#highlight-input,
+.mn-dark-theme #highlight-error{
+	color: #ff4a4a;
+}
+
+#margin-notes-highlight-input{
+	font-size: 17px;
+	line-height: 36px;
+}
+
+#margin-notes-highlight-input,
 .margin-notes-form textarea{
 	width:100%;
-	font-size: 1em;
+	font-size: 17px;
 	border-radius:5px;
-	padding:.1em;
-	border: 1px solid #333;
+	padding: 4px 6px;
+	outline: none;
+}
+
+.mn-light-theme #margin-notes-highlight-input,
+#margin-notes-form.mn-light-theme textarea{
+	box-shadow: 0 1px 3px #ddd;
+	background: #fff;
+	border: 1px solid #ddd;
+	color: #161616;
+}
+
+.mn-dark-theme #margin-notes-highlight-input,
+#margin-notes-form.mn-dark-theme textarea{
+	background: #000;
+	border: 1px solid #333239;
+	color: #fff;
+}
+
+#margin-notes-highlight-input:focus,
+#margin-notes-form.margin-notes-form textarea:focus{
+	border: 1px solid #4d42cb;
 }
 
 .margin-notes-wrapper textarea{
 	display:block;
-	resize:none;
-	margin: .5em 0;
+	resize: none;
+	margin: .8px 0 17px;
 }
 
-.margin-notes-form label{
+#margin-notes-form label{
 	display:block;
+	font-weight: bold;
+	font-size: 14px;
+}
+
+#margin-notes-form.mn-light-theme label{
+	color: #3b3b3b;
+}
+
+#margin-notes-form.mn-dark-theme label{
+	color: #fff;
 }
 
 .margin-notes-form input,
 .margin-notes-form textarea{
 	box-sizing:border-box;
 	color:rgb(100,100,100);
+}
+
+.mn-light-theme.margin-notes-form input::placeholder,
+.mn-light-theme.margin-notes-form textarea::placeholder{
+	color: #999;
+}
+
+.mn-dark-theme.margin-notes-form input::placeholder,
+.mn-dark-theme.margin-notes-form textarea::placeholder{
+	color: #afafb2;
 }
 
 #margin-notes-form input[type=checkbox]{
@@ -114,6 +164,22 @@
 	margin: .3em 1em 0 0;
 }
 
+#margin-notes-form label svg rect{
+	fill: #fff;
+}
+
+#margin-notes-form label svg line{
+	stroke: #fff;
+}
+
+#margin-notes-form input[type=checkbox]:checked + svg rect	{
+	fill: #000;
+}
+/*
+#margin-notes-form input[type=checkbox]:checked + svg line{
+	stroke: #000;
+}
+*/
 .colored-border{
 	border-radius: 5px;
 }
@@ -122,15 +188,32 @@
 	display:block;
 	margin: 5px auto 0;
 	box-shadow:none;
-	padding:.5em;
-	width:15%;
-	min-width: 5em;
+	padding: 10px;
+	text-transform: none!important;
+	font-weight: 500;
+	font-size: 16px;
+	width: 20%;
+	min-width: 140px;
+	border-radius: 5px;
 	text-decoration: none;
 	text-transform: none;
+	background: linear-gradient( to top, #4d42cb, #6c59d9);
+	/*transition: background .3s, color .3s;*/
+	
+}
+
+.mn-light-theme #margin-notes-submit{
+	border: 2px solid #fff;
+}
+
+.mn-dark-theme #margin-notes-submit{
+	border: 2px solid #17141a;
 }
 
 #margin-notes-submit:hover{
-	transform:scale(1.1);
+	background: #fff;
+	color: #4d42cb;
+	border: 2px solid #4d42cb;
 }
 
 #margin-notes-add {
@@ -358,11 +441,11 @@ button.delete-annotation:hover{
 		max-width: none;
 	}
 
-	.margin-notes-wrapper-left{
+	div.margin-notes-wrapper-left{
 		left:-50%;
 	}
 
-	.margin-notes-wrapper-right{
+	div.margin-notes-wrapper-right{
 		right:-50%;
 	}
 }
@@ -372,19 +455,13 @@ button.delete-annotation:hover{
 		width: 100%;
 	}
 
-	.margin-notes-wrapper-right{
+	div.margin-notes-wrapper-right{
 		right: -100%;
 	}
 
-	.margin-notes-wrapper-left{
+	div.margin-notes-wrapper-left{
 		left: -100%;
 	}
-
-	/*
-	#margin-notes-form{
-		width:100%;
-	}
-	*/
 }
 
 .margin-notes-container{
