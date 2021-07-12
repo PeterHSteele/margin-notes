@@ -270,7 +270,6 @@ class Margin_Notes {
 		}
 
 		$settings = get_option('margin_notes_display_options', $this->get_safe_settings( array() ));
-		$settings = wp_parse_args($settings, $this->settings_defaults);
 
 		/*
 		annotations are returned from options api as an array ordered by when
@@ -1045,11 +1044,11 @@ class Margin_Notes {
 
 	public function get_safe_settings( $settings ){
 		$defaults = $this->settings_defaults;
-
+		$settings = wp_parse_args($settings, $defaults);
 		$safe_settings = array();
 
 		foreach ($defaults as $key => $default){
-			$safe_settings[$key] = !empty( $settings[$key] ) ? esc_attr($settings[$key]) : $defaults[$key];
+			$safe_settings[$key] = !empty( $settings[$key] ) ? esc_attr($settings[$key]) : esc_attr($defaults[$key]);
 		}
 
 		return $safe_settings;
