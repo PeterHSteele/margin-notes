@@ -462,7 +462,7 @@ class Margin_Notes {
 		update_option( 'margin_notes_annotations', $annotations );
 		update_option( 'margin_notes_html_string', '');
 
-		$url = get_home_url() . '/index.php/' . $post;
+		$url = get_permalink($post);
 
 		wp_redirect( $url );
 
@@ -514,7 +514,7 @@ class Margin_Notes {
 		$wrapper_class = 'margin-notes-wrapper margin-notes-wrapper-' . $direction ;
 
 		$form_class = 'margin-notes-form margin-notes-form-' . $direction . ' ' . $theme_class;
-
+		$placeholders = $this->annotation_field_placeholders();
 		ob_start();
 		?>
 			<div id="margin-notes-add-button-assembly" class="margin-notes-add-<?php echo esc_attr($direction); ?>">
@@ -543,12 +543,12 @@ class Margin_Notes {
 				);
 		$html .= sprintf( '<input type="text" name="post-name" id="post-name" readonly="readonly" value="%s">', esc_attr(get_post()->post_name) );
 		$html .= '<label>'.__( 'Copy and paste source text for your annotation.', 'margin-notes' );
-		$html .= '<input name="highlight" id="margin-notes-highlight-input" type="text"></label>';
+		$html .= sprintf('<input name="highlight" id="margin-notes-highlight-input" type="text" placeholder="%s"></label>', $placeholders[0]);
 		$html .= '<p id="highlight-error"></p>';
 		$html .= '<label>'.__( 'Create an annotation.', 'margin-notes' );
 		$html .= sprintf( 
-					'<textarea name="annotation" rows="10" id="annotation-input" placeholder="%s ..." type="text">',
-				$this->annotation_field_placeholders(),
+					'<textarea name="annotation" rows="10" id="annotation-input" placeholder="%s" type="text">',
+				$placeholders[1],
 		);
 		$html .= '</textarea></label>';
 		$html .= '<label>'.__('Delete all annotations on this page.', 'margin-notes' );
@@ -567,15 +567,23 @@ class Margin_Notes {
 
 	}
 
-	public function annotation_field_placeholders(){
-		$placeholders = array(
-			__( 'Written at the nadir of our hero\'s hopes', 'margin-notes' ),
-			__( 'This was in fact the first time in recorded history that', 'margin-notes' ),
-			__( '20 years later, when sliced bread was invented, many would say', 'margin-notes' ),
-			__( 'In the annals of great patriotic songs', 'margin-notes' ),
+	private function annotation_field_placeholders(){
+		$highlight = array(
+			esc_attr__('The letter from Jamaica', 'margin-notes'),
+			esc_attr__('The secession of the plebes', 'margin-notes'),
+			esc_attr__('The marvelous automobile', 'margin-notes'),
+			esc_attr__('Le Marseillaise', 'margin-notes'),
 		);
 
-		return $placeholders[rand(0,3)];
+		$placeholders = array(
+			esc_attr__( 'Written at the nadir of our hero\'s hopes...', 'margin-notes' ),
+			esc_attr__('This was in fact the first time in recorded history that...', 'margin-notes' ),
+			esc_attr__( '20 years later, when sliced bread was invented, many would say...', 'margin-notes' ),
+			esc_attr__( 'In the annals of great patriotic songs...', 'margin-notes' ),
+		);
+
+		$random = rand(0,3);
+		return array($highlight[$random], $placeholders[$random]);
 	}
 
 	/**
