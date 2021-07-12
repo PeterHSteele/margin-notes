@@ -269,7 +269,8 @@ class Margin_Notes {
 			return $content;
 		}
 
-		$settings = get_option('margin_notes_display_options', $this->get_safe_settings( array() ));
+		$settings = get_option('margin_notes_display_options', array());
+		$settings = wp_parse_args($settings, $this->settings_defaults);
 
 		/*
 		annotations are returned from options api as an array ordered by when
@@ -831,12 +832,12 @@ class Margin_Notes {
 			}
 		}
 
-		$input['container'] 	 = isset($input['container']) ? sanitize_text_field( $input['container'] ) : '';
-		$input['width_value']  = isset($input['width_value']) ? intval( $input['width_value'] ) : '';
+		$input['container'] 	 = isset($input['container']) ? sanitize_text_field( $input['container'] ) : null;
+		$input['width_value']  = isset($input['width_value']) ? intval( $input['width_value'] ) : null;
 		
 		$width_units = array( 'px', '%',  'px');
-		if ( isset($width_unit) && ! in_array( $input['width_unit'], $width_units ) ){
-			$input['width_unit'] = 'px';
+		if ( isset($input['width_unit']) && ! in_array( $input['width_unit'], $width_units ) ){
+			$input['width_unit'] = '%';
 		}
 		
 		if ( isset($input['hide_notes']) && ! is_bool( $input['hide_notes'] ) ){
@@ -1041,18 +1042,6 @@ class Margin_Notes {
 		wp_redirect( $url );
 	}
 
-	public function get_safe_settings( $settings ){
-		$defaults = $this->settings_defaults;
-		$settings = wp_parse_args($settings, $defaults);
-		$safe_settings = array();
-
-		foreach ($defaults as $key => $default){
-			$safe_settings[$key] = !empty( $settings[$key] ) ? esc_attr($settings[$key]) : esc_attr($defaults[$key]);
-		}
-
-		return $safe_settings;
-	}
-
 	/**
 	 * Increases or decreases the brightness of a color by a percentage of the current brightness.
 	 *
@@ -1091,7 +1080,9 @@ class Margin_Notes {
 	public function build_inline_styles(){
 
 		$options = get_option('margin_notes_display_options',array());
-
+		$options = wp_parse_args( $options, $this->settings_defaults );
+		$options = array_map('esc_attr', $options);
+		
 		[ 
 			'submit_button_color' => $submit_button_color, 
 			'note_background_color' => $note_background_color, 
@@ -1100,10 +1091,10 @@ class Margin_Notes {
 			'which_margin' => $which_margin, 
 			'width_value' => $width_value, 
 			'width_unit' => $width_unit,
-		] = $this->get_safe_settings( $options );
-
+		] = $options;
+	
 		$other_margin = 'left' == $which_margin ? 'right' : 'left';
-		var_dump($width_unit);
+		
 		$width = $width_value . $width_unit;
 		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
@@ -1217,23 +1208,29 @@ class Margin_Notes {
 		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
-		$settings = get_option( 'margin_notes_display_options' );
-		$settings = $this->get_safe_settings( $settings );
+		$settings = get_option( 'margin_notes_display_options', array() );
+		$settings = wp_parse_args( $settings, $this->settings_defaults );
+		
+		$note_background_color = esc_attr($settings['note_background_color']);
+		$note_text_color = esc_attr($settings['note_text_color']);
+		$width_value =esc_attr($settings['width_value']);
+		$width_unit = esc_attr($settings['width_unit']);
+		$container = esc_attr($settings['container']);
+		$display_type = 'margins' == $settings['display_type'] ? 'margins' : 'tooltips';
 
 		$nonce 			= wp_create_nonce( 'populate_annotations' );
 		$content      	= apply_filters( 'the_content', get_the_content( null, false, $post_obj ) );
 		$delete_url 	= wp_nonce_url( admin_url('admin-post.php'), 'delete-annotation', 'delete-annotation' );
 
 		wp_localize_script('margin-notes', 'settings', array(
-				'note_background_color' => $settings['note_background_color'],
-				'note_text_color' => $settings['note_text_color'],
-				'width_value' => $settings['width_value'],
-				'width_unit' => $settings['width_unit'],
-				'direction' => $settings['which_margin'],
-				'container' => $settings['container'],
+				'note_background_color' => $note_background_color,
+				'note_text_color' => $note_text_color,
+				'width_value' => $width_value,
+				'width_unit' => $width_unit,
+				'container' => $container,
 				'ajaxURL' => admin_url('admin-ajax.php'),
 				'security' => $nonce,
-				'display_type' => $settings['display_type'],
+				'display_type' => $display_type,
 				'post' => $post,
 				'content' => $content,
 				'annotations' => $annotations,
