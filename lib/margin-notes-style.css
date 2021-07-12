@@ -39,9 +39,7 @@
 	font-size: 16px;
 	position:relative;
 	overflow:hidden;
-	/*background: #fff;*/
 	border-radius: 5px;
-	/*border: 2px solid #eee;*/
 }
 
 #margin-notes-form.mn-light-theme{
@@ -151,7 +149,7 @@
 
 .mn-dark-theme.margin-notes-form input::placeholder,
 .mn-dark-theme.margin-notes-form textarea::placeholder{
-	color: #afafb2;
+	color: #5c5b64;
 }
 
 #margin-notes-form input[type=checkbox]{
@@ -200,22 +198,30 @@
 	text-decoration: none;
 	text-transform: none;
 	background: linear-gradient( to top, #4d42cb, #6c59d9);
-	/*transition: background .3s, color .3s;*/
-	
 }
 
 .mn-light-theme #margin-notes-submit{
 	border: 2px solid #fff;
+	color: #fff;
 }
 
 .mn-dark-theme #margin-notes-submit{
 	border: 2px solid #17141a;
+	color: var(--gray);
 }
 
 #margin-notes-submit:hover{
 	background: #fff;
 	color: #4d42cb;
 	border: 2px solid #4d42cb;
+}
+
+.mn-light-theme #margin-notes-submit:hover{
+	background: #fff;
+}
+
+.mn-dark-theme #margin-notes-submit:hover{
+	background: var(--gray);
 }
 
 /* Add Annotation Button And Hint */
@@ -238,7 +244,6 @@
 	border-radius: 2px 0 0 2px;
 	position: relative;
 	animation: 3s hover linear infinite;
-	/*height: 24px;*/
 }
 
 #margin-notes-hint.fade{
@@ -279,7 +284,6 @@
 }
 
 #margin-notes-hint:before{
-	/*content: "\25B6";*/
 	border-left: 8px solid #262a2d;
 	border-bottom: 8px solid #262a2d;
 	border-right: 8px solid transparent;

@@ -1156,9 +1156,23 @@ class Margin_Notes {
 			$which_margin: 0;
 		}
 
+		#margin-notes-highlight-input:focus,
+		#margin-notes-form.margin-notes-form textarea#annotation-input:focus{
+			border: 1px solid $submit_button_color;
+		}
+
 		#margin-notes-submit{
 			background: linear-gradient(to top, $submit_button_dark, $submit_button_light);
-		}";
+		}
+		
+		#margin-notes-submit:hover,
+		#margin-notes-submit:active{
+			color: $submit_button_color;
+			border: 2px solid $submit_button_color;
+		}
+
+
+		";
 
 		return $annotation_style . $highlight_style . $delete_style . $form_style;
 	}
