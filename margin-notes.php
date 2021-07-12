@@ -815,18 +815,22 @@ class Margin_Notes {
 		);
 
 		foreach ( $radios as $field ){
-			$input[$field[0]] = $this->sanitize_radio( $input[$field[0]], $field[1], $field[2] );
+			if (isset($input[$field[0]])){
+				$input[$field[0]] = $this->sanitize_radio( $input[$field[0]], $field[1], $field[2] );
+			} else {
+				$input[$field[0]]='';
+			}
 		}
 
-		$input['container'] 	 = sanitize_text_field( $input['container'] );
-		$input['width_value'] 	 = intval( $input['width_value'] );
+		$input['container'] 	 = isset($input['container']) ? sanitize_text_field( $input['container'] ) : '';
+		$input['width_value']  = isset($input['width_value']) ? intval( $input['width_value'] ) : '';
 		
 		$width_units = array( 'px', '%',  'px');
 		if ( ! in_array( $input['width_unit'], $width_units ) ){
 			$input['width_unit'] = 'px';
 		}
 		
-		if ( ! is_bool( $input['hide_notes'] ) ){
+		if ( isset($input['hide_notes']) && ! is_bool( $input['hide_notes'] ) ){
 			$input['hide_notes'] = false;
 		}
 
