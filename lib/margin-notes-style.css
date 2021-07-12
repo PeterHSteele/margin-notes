@@ -90,7 +90,7 @@
 }
 
 #margin-notes-highlight-input,
-.margin-notes-form textarea{
+.margin-notes-form #annotation-input{
 	width:100%;
 	font-size: 17px;
 	border-radius:5px;
@@ -99,7 +99,7 @@
 }
 
 .mn-light-theme #margin-notes-highlight-input,
-#margin-notes-form.mn-light-theme textarea{
+#margin-notes-form.mn-light-theme textarea#annotation-input{
 	box-shadow: 0 1px 3px #ddd;
 	background: #fff;
 	border: 1px solid #ddd;
@@ -107,14 +107,14 @@
 }
 
 .mn-dark-theme #margin-notes-highlight-input,
-#margin-notes-form.mn-dark-theme textarea{
+#margin-notes-form.mn-dark-theme textarea#annotation-input{
 	background: #000;
 	border: 1px solid #333239;
 	color: #fff;
 }
 
 #margin-notes-highlight-input:focus,
-#margin-notes-form.margin-notes-form textarea:focus{
+#margin-notes-form.margin-notes-form textarea#annotation-input:focus{
 	border: 1px solid #4d42cb;
 }
 
@@ -318,6 +318,7 @@
 	padding:0;
 	height:20px;
 	width:20px;
+	background: transparent;
 }
 
 .margin-notes-add-right button{

@@ -54,7 +54,7 @@ class Margin_Notes {
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
 		add_action( 'admin_head', array( $this, 'admin_style' ) );
-		add_filter( 'plugin_action_links_margin-notes/margin-notes.php', array($this,'add_settings_link_to_plugins_table'));
+		add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), array($this,'add_settings_link_to_plugins_table'));
 	}
 
 	public function get_user(){
@@ -202,7 +202,7 @@ class Margin_Notes {
 		//return $admin_bar;
 	} 
 */
-	private function add_settings_link_to_plugins_table( $actions ){
+	public function add_settings_link_to_plugins_table( $actions ){
 		$url = esc_url( admin_url() . '/options-reading.php#margin_notes_display_settings' );
 		$link = '<a href="' . $url .'">' . __('Settings', 'margin-notes') . '</a>';
 		array_unshift($actions, $link);
@@ -241,7 +241,7 @@ class Margin_Notes {
 	*/
 
 	public function show_annotations( $content ) {
-		$site_annotations = get_option( 'margin_notes_annotations', array() );
+		$site_annotations = get_option( 'margin_notes_annotations', array());
 		$html_string = get_option( 'margin_notes_html_string' );
 		
 		$user = wp_get_current_user()->ID;
@@ -257,7 +257,7 @@ class Margin_Notes {
 			return $content;
 		}
 
-		$settings = get_option('margin_notes_display_options');
+		$settings = get_option('margin_notes_display_options', $this->get_safe_settings( array() ));
 
 		/*
 		annotations are returned from options api as an array ordered by when
@@ -306,7 +306,8 @@ class Margin_Notes {
 			
 		$annotation_html = '';
 		$note_num = 0;
-		$margin_display = $settings['display_type'] === 'margins';
+
+		$margin_display = isset($settings['display_type']) && $settings['display_type'] === 'tooltips' ? 'tooltips' : 'margins';
 		
 
 		while ( current( $annotations_by_index ) ) {
@@ -487,7 +488,7 @@ class Margin_Notes {
 
 		include_once 'lib/check_icon.php';
 
-		$settings = get_option( 'margin_notes_display_options' );
+		$settings = get_option( 'margin_notes_display_options', array() );
 
 		$svg = '
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 50 50">
@@ -500,8 +501,8 @@ class Margin_Notes {
 		</svg>
 		';
 
-		$direction = $settings['which_margin'] === 'left' ? 'left' : 'right';
-		$theme_class = $settings['form_theme'] === 'dark' ? 'mn-dark-theme' : 'mn-light-theme';
+		$direction = isset($settings['which_margin']) && $settings['which_margin'] === 'left' ? 'left' : 'right';
+		$theme_class = isset($settings['form_theme'])  && $settings['form_theme'] === 'dark' ? 'mn-dark-theme' : 'mn-light-theme';
 
 		$users_who_have_seen_the_hint = get_option('margin_notes_users_have_seen_hint', array());
 		$hint_visible = !in_array($this->user, $users_who_have_seen_the_hint);
@@ -886,8 +887,8 @@ class Margin_Notes {
 			)
 		);
 
-		$settings = get_option( 'margin_notes_display_options' );
-		$display_type = $settings['display_type'];
+		$settings = get_option( 'margin_notes_display_options', array() );
+		$display_type = isset($settings['display_type']) ? $settings['display_type'] : 'margins';
 
 		['sections' => $sections, 'fields' => $fields ] = $this->settings_parameters();
 
@@ -1033,10 +1034,11 @@ class Margin_Notes {
 			'note_background_color' => '#4d42cb',
 			'note_text_color' => '#fff',
 			'which_margin' => 'right',
-			'width_value' => '20',
+			'width_value' => '25',
 			'width_unit' => '%',
 			'display_type' => 'margins',
 			'container' => '.margin-notes-container',
+			'hide_notes' => false
 		);
 
 		$safe_settings = array();
