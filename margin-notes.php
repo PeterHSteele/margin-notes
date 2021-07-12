@@ -48,6 +48,7 @@ class Margin_Notes {
 			'display_type' => 'margins',
 			'container' => '.margin-notes-container',
 			'hide_notes' => false,
+			'form_theme' => 'light',
 	);
 
 	private function __construct() {
@@ -825,22 +826,25 @@ class Margin_Notes {
 		);
 
 		foreach ( $radios as $field ){
-			if (isset($input[$field[0]])){
-				$input[$field[0]] = $this->sanitize_radio( $input[$field[0]], $field[1], $field[2] );
-			} else {
-				$input[$field[0]]='';
-			}
+			$input[$field[0]] = $this->sanitize_radio( $input[$field[0]], $field[1], $field[2] );
+		}
+		
+		$input['container'] 	 = sanitize_text_field( $input['container'] );
+		if (0 == strlen($input['container'])){
+			$input['container'] = $this->settings_defaults['container'];
 		}
 
-		$input['container'] 	 = isset($input['container']) ? sanitize_text_field( $input['container'] ) : null;
-		$input['width_value']  = isset($input['width_value']) ? intval( $input['width_value'] ) : null;
+		$input['width_value']  = intval( $input['width_value'] );
+		if (0 == $input['width_value']){
+			$input['width_value'] = $this->settings_defaults['width_value'];
+		}
 		
 		$width_units = array( 'px', '%',  'px');
-		if ( isset($input['width_unit']) && ! in_array( $input['width_unit'], $width_units ) ){
+		if ( ! in_array( $input['width_unit'], $width_units ) ){
 			$input['width_unit'] = '%';
 		}
 		
-		if ( isset($input['hide_notes']) && ! is_bool( $input['hide_notes'] ) ){
+		if ( !is_bool( $input['hide_notes'] ) ){
 			$input['hide_notes'] = false;
 		}
 
