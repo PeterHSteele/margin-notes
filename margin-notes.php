@@ -934,7 +934,7 @@ class Margin_Notes {
 					'description' => $field['desc'],
 					'setting' => $setting,
 					'values' => isset( $field['values'] ) ? $field['values'] : array(),
-					'class' => $field['name'].' '.$display
+					'class' => 'margin_notes_' .$field['name'].' '.$display
 				)
 			);
 		}
