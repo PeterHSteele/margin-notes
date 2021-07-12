@@ -38,6 +38,18 @@ class Margin_Notes {
 
 	private $user;
 
+	private $settings_defaults=array(
+			'submit_button_color' => '#4d42cb',
+			'note_background_color' => '#4d42cb',
+			'note_text_color' => '#fff',
+			'which_margin' => 'right',
+			'width_value' => '25',
+			'width_unit' => '%',
+			'display_type' => 'margins',
+			'container' => '.margin-notes-container',
+			'hide_notes' => false,
+	);
+
 	private function __construct() {
 
 		//front-end
@@ -258,6 +270,7 @@ class Margin_Notes {
 		}
 
 		$settings = get_option('margin_notes_display_options', $this->get_safe_settings( array() ));
+		$settings = wp_parse_args($settings, $this->settings_defaults);
 
 		/*
 		annotations are returned from options api as an array ordered by when
@@ -307,8 +320,7 @@ class Margin_Notes {
 		$annotation_html = '';
 		$note_num = 0;
 
-		$margin_display = isset($settings['display_type']) && $settings['display_type'] === 'tooltips' ? 'tooltips' : 'margins';
-		
+		$margin_display = isset($settings['display_type']) && $settings['display_type'] == 'margins';
 
 		while ( current( $annotations_by_index ) ) {
 			$current = current( $annotations_by_index );
@@ -328,7 +340,7 @@ class Margin_Notes {
 			<?php
 			$slideout_button = ob_get_contents();
 			ob_end_clean();
-						
+			
 			if ( ! $settings['hide_notes'] && $margin_display ){
 				$which_margin= 'left' === $settings['which_margin'] ? 'left' : 'right';
 				
@@ -808,7 +820,6 @@ class Margin_Notes {
 		}
 
 		$radios = array(
-			array( 'container_type', 'id', 'class'  ),
 			array( 'display_type', 'margins', 'tooltips' ),
 			array( 'which_margin', 'left', 'right' ),
 			array( 'form_theme', 'light', 'dark'),
@@ -826,7 +837,7 @@ class Margin_Notes {
 		$input['width_value']  = isset($input['width_value']) ? intval( $input['width_value'] ) : '';
 		
 		$width_units = array( 'px', '%',  'px');
-		if ( ! in_array( $input['width_unit'], $width_units ) ){
+		if ( isset($width_unit) && ! in_array( $input['width_unit'], $width_units ) ){
 			$input['width_unit'] = 'px';
 		}
 		
@@ -1033,17 +1044,7 @@ class Margin_Notes {
 	}
 
 	public function get_safe_settings( $settings ){
-		$defaults = array(
-			'submit_button_color' => '#4d42cb',
-			'note_background_color' => '#4d42cb',
-			'note_text_color' => '#fff',
-			'which_margin' => 'right',
-			'width_value' => '25',
-			'width_unit' => '%',
-			'display_type' => 'margins',
-			'container' => '.margin-notes-container',
-			'hide_notes' => false
-		);
+		$defaults = $this->settings_defaults;
 
 		$safe_settings = array();
 
