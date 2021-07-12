@@ -599,7 +599,7 @@ class Margin_Notes {
 	}
 
 	/**
-	* gets attributes and strings to populate the margin notes settings section in Settings -> Discussion
+	* gets attributes and strings to populate the margin notes settings section in Settings -> Reading
 	*
 	* @since 1.0.0
 	*/
@@ -664,8 +664,7 @@ class Margin_Notes {
 				'section' => 'display_settings',
 				'desc' => __( 'Optional. A css selector for an html element in your theme to be used as the container for the annotations. 
 				The best choice is usually the wrapper for the main content of an individual post, which varies by theme but is often named 
-				"div.entry-content" or something similar. Feel free to leave this field blank if you\'re not sure what to write. Defaults to 
-				the element targeted by the `post_class` function.', 'margin-notes')
+				"div.entry-content". Feel free to leave this field blank if you\'re not sure what to write.', 'margin-notes')
 			),
 			array(
 				'name' => 'width_value',
@@ -687,7 +686,7 @@ class Margin_Notes {
 				'title' => __( 'Choose Margin', 'margin-notes' ),
 				'type' => 'radio_group',
 				'section' => 'display_settings',
-				'desc' => __( 'The side of the page where annotations will appear and from which the form will slide out.', 'margin-notes'),
+				'desc' => __( 'The side of the page where annotations will appear and from which the "New Annotation" form will slide out.', 'margin-notes'),
 				'values' => array( 'left', 'right' ),
 			),
 			array(
@@ -1104,7 +1103,7 @@ class Margin_Notes {
 		] = $this->get_safe_settings( $options );
 
 		$other_margin = 'left' == $which_margin ? 'right' : 'left';
-
+		var_dump($width_unit);
 		$width = $width_value . $width_unit;
 		$form_wrapper_offset = -1 * $width_value . $width_unit;
 
