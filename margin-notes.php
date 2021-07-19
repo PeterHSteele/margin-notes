@@ -261,14 +261,17 @@ class Margin_Notes {
 		if ( 0 === $user || !array_key_exists($user, $site_annotations) ) return $content;
 		
 		$post = get_post()->post_name;
-		if (!array_key_exists($post, $site_annotations[$user] )) return $content;
 		
-		$annotations = $site_annotations[$user][$post];
-		
-		if ( ! $annotations || ! is_singular() || ! current_user_can( 'annotate' ) ){
+		if ( 
+			! array_key_exists($post, $site_annotations[$user] ) || 
+			! is_singular() || 
+			! current_user_can( 'annotate' )
+		){
 			update_option( 'margin_notes_html_string', '');
 			return $content;
-		}
+		} 
+
+		$annotations = $site_annotations[$user][$post];
 
 		$settings = get_option('margin_notes_display_options', array());
 		$settings = wp_parse_args($settings, $this->settings_defaults);
@@ -1223,6 +1226,8 @@ class Margin_Notes {
 		} else{
 			$annotations = array();
 		}
+
+		var_dump(isset($site_annotations[$user][$post]));
 		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
