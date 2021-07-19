@@ -63,7 +63,7 @@ class Margin_Notes {
 		add_action( 'init', array( $this, 'get_user' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'load_back_end' ) );
 		add_action( 'admin_init', array( $this, 'setup_admin_settings' ) );
-		add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );
+		//add_action( 'wp_ajax_handle_annotations', array( $this, 'handle_annotations') );
 		add_action( 'admin_post_delete_annotation', array( $this , 'delete_annotation' ) );
 		add_action( 'admin_post_annotation' , array( $this, 'get_form_data') );
 		add_action( 'admin_head', array( $this, 'admin_style' ) );
@@ -91,7 +91,12 @@ class Margin_Notes {
 	}
 
 	public function add_container_class( $classes ){
-		$classes[]='margin-notes-container';
+		$settings = get_option('margin_notes_display_options',array());
+		$settings = wp_parse_args($settings, $this->settings_defaults );
+		
+		if ( '.margin-notes-container' === $settings['container']  ){
+			$classes[]='margin-notes-container';
+		}
 		return $classes;
 	}
 
@@ -108,7 +113,6 @@ class Margin_Notes {
 			return;
 		}
 
-		add_option( 'margin_notes_html_string', '' );
 		add_option( "margin_notes_annotations" , array() );
 		add_option( "margin_notes_users_have_seen_hint", array());
 
@@ -141,7 +145,6 @@ class Margin_Notes {
 
 	public static function on_uninstall(){
 		delete_option( 'margin_notes_annotations' );
-		delete_option( 'margin_notes_html_string' );
 		delete_option( 'margin_notes_display_options ');
 		delete_option( 'margin_notes_users_have_seen_hint' );
 	}
@@ -255,7 +258,6 @@ class Margin_Notes {
 
 	public function show_annotations( $content ) {
 		$site_annotations = get_option( 'margin_notes_annotations', array());
-		$html_string = get_option( 'margin_notes_html_string' );
 		
 		$user = wp_get_current_user()->ID;
 		if ( 0 === $user || !array_key_exists($user, $site_annotations) ) return $content;
@@ -267,7 +269,6 @@ class Margin_Notes {
 			! is_singular() || 
 			! current_user_can( 'annotate' )
 		){
-			update_option( 'margin_notes_html_string', '');
 			return $content;
 		} 
 
@@ -414,7 +415,7 @@ class Margin_Notes {
 		}
 		
 		if ( $margin_display ){
-			update_option( 'margin_notes_html_string', $annotation_html );
+			$content = $annotation_html . $content;
 		} else {
 			$content .= '<div id="annotation-tooltip" class="annotation-tooltip no-display"><div class="spacer"><div class="tip-content">';
 			$content .=	'<p class="annotation-body"></p>';
@@ -431,7 +432,7 @@ class Margin_Notes {
 	*
 	* @since 1.0.0
 	*/
-
+	/*
 	public function handle_annotations(){
 		check_ajax_referer('populate_annotations' , 'security' );
 
@@ -449,7 +450,7 @@ class Margin_Notes {
  	
 		wp_die();
 	}
-
+	*/
 	/**
 	* Handles a request to delete a single annotation. 
 	*
@@ -477,7 +478,6 @@ class Margin_Notes {
 		array_splice( $annotations[$user][$post], $id, 1);
 		
 		update_option( 'margin_notes_annotations', $annotations );
-		update_option( 'margin_notes_html_string', '');
 
 		$url = get_permalink($post);
 
@@ -999,7 +999,6 @@ class Margin_Notes {
 		if ( isset( $_POST['delete'] ) ){
 			$annotations[$user][$post]=array();
 			update_option( 'margin_notes_annotations' , $annotations );
-			update_option( 'margin_notes_html_string', '' );
 			wp_redirect( $url );
 		}
 
@@ -1226,8 +1225,6 @@ class Margin_Notes {
 		} else{
 			$annotations = array();
 		}
-
-		var_dump(isset($site_annotations[$user][$post]));
 		
 		//enqueue script
 		wp_enqueue_script('margin-notes',plugins_url('/lib/margin-notes.js',__FILE__),array('jquery') );
