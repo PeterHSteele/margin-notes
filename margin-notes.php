@@ -478,8 +478,12 @@ class Margin_Notes {
 		array_splice( $annotations[$user][$post], $id, 1);
 		
 		update_option( 'margin_notes_annotations', $annotations );
-
-		$url = get_permalink($post);
+		
+		$post_obj = get_posts(
+			array('name'=>$post)
+		)[0];
+		
+		$url = get_permalink( $post_obj );
 
 		wp_redirect( $url );
 
